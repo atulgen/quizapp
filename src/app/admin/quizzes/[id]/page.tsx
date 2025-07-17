@@ -1,11 +1,11 @@
 // app/admin/quizzes/[id]/page.tsx
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { 
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
   ArrowLeft,
   Edit,
   Trash2,
@@ -19,8 +19,8 @@ import {
   TrendingUp,
   Award,
   Eye,
-  EyeOff
-} from 'lucide-react';
+  EyeOff,
+} from "lucide-react";
 
 interface Quiz {
   id: number;
@@ -39,7 +39,7 @@ interface Question {
   text: string;
   options: string[];
   correctAnswer: string;
-  type?: 'multiple-choice' | 'true-false' | 'short-answer';
+  type?: "multiple-choice" | "true-false" | "short-answer";
   points?: number;
 }
 
@@ -76,20 +76,20 @@ export default function QuizDetailPage() {
     try {
       setIsLoading(true);
       const response = await fetch(`/api/admin/quizzes/${id}`);
-      
+
       if (!response.ok) {
         if (response.status === 404) {
-          router.push('/admin/quizzes?error=Quiz+not+found');
+          router.push("/admin/quizzes?error=Quiz+not+found");
           return;
         }
-        throw new Error('Failed to fetch quiz data');
+        throw new Error("Failed to fetch quiz data");
       }
 
       const quizData: QuizResponse = await response.json();
       setData(quizData);
     } catch (error) {
-      console.error('Error loading quiz:', error);
-      alert('Failed to load quiz data. Please try again.');
+      console.error("Error loading quiz:", error);
+      alert("Failed to load quiz data. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -97,15 +97,15 @@ export default function QuizDetailPage() {
 
   const toggleQuizStatus = async () => {
     if (!data) return;
-    
+
     try {
       setIsToggling(true);
       const response = await fetch(`/api/admin/quizzes/${id}/toggle-status`, {
-        method: 'PATCH',
+        method: "PATCH",
       });
 
       if (!response.ok) {
-        throw new Error('Failed to toggle quiz status');
+        throw new Error("Failed to toggle quiz status");
       }
 
       const result = await response.json();
@@ -113,36 +113,40 @@ export default function QuizDetailPage() {
         ...data,
         quiz: {
           ...data.quiz,
-          isActive: result.quiz.isActive
-        }
+          isActive: result.quiz.isActive,
+        },
       });
     } catch (error) {
-      console.error('Error toggling quiz status:', error);
-      alert('Failed to update quiz status. Please try again.');
+      console.error("Error toggling quiz status:", error);
+      alert("Failed to update quiz status. Please try again.");
     } finally {
       setIsToggling(false);
     }
   };
 
   const deleteQuiz = async () => {
-    if (!confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this quiz? This action cannot be undone."
+      )
+    ) {
       return;
     }
-    
+
     try {
       setIsDeleting(true);
       const response = await fetch(`/api/admin/quizzes/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete quiz');
+        throw new Error("Failed to delete quiz");
       }
 
-      router.push('/admin/quizzes?success=Quiz+deleted+successfully');
+      router.push("/admin/quizzes?success=Quiz+deleted+successfully");
     } catch (error) {
-      console.error('Error deleting quiz:', error);
-      alert('Failed to delete quiz. Please try again.');
+      console.error("Error deleting quiz:", error);
+      alert("Failed to delete quiz. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -152,35 +156,37 @@ export default function QuizDetailPage() {
     try {
       setIsDuplicating(true);
       const response = await fetch(`/api/admin/quizzes/${id}/duplicate`, {
-        method: 'POST',
+        method: "POST",
       });
 
       if (!response.ok) {
-        throw new Error('Failed to duplicate quiz');
+        throw new Error("Failed to duplicate quiz");
       }
 
       const result = await response.json();
-      router.push(`/admin/quizzes/${result.quiz.id}/edit?success=Quiz+duplicated+successfully`);
+      router.push(
+        `/admin/quizzes/${result.quiz.id}/edit?success=Quiz+duplicated+successfully`
+      );
     } catch (error) {
-      console.error('Error duplicating quiz:', error);
-      alert('Failed to duplicate quiz. Please try again.');
+      console.error("Error duplicating quiz:", error);
+      alert("Failed to duplicate quiz. Please try again.");
     } finally {
       setIsDuplicating(false);
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getStatusColor = (isActive: boolean) => {
-    return isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+    return isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
   };
 
   const getStatusIcon = (isActive: boolean) => {
@@ -221,9 +227,13 @@ export default function QuizDetailPage() {
           </Button>
         </Link>
         <h1 className="text-2xl font-bold flex-1">{quiz.title}</h1>
-        <div className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 ${getStatusColor(quiz.isActive)}`}>
+        <div
+          className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 ${getStatusColor(
+            quiz.isActive
+          )}`}
+        >
           {getStatusIcon(quiz.isActive)}
-          {quiz.isActive ? 'Active' : 'Inactive'}
+          {quiz.isActive ? "Active" : "Inactive"}
         </div>
       </div>
 
@@ -235,23 +245,27 @@ export default function QuizDetailPage() {
             Edit Quiz
           </Button>
         </Link>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={toggleQuizStatus}
           disabled={isToggling}
         >
           {getStatusIcon(!quiz.isActive)}
-          {isToggling ? 'Updating...' : (quiz.isActive ? 'Deactivate' : 'Activate')}
+          {isToggling
+            ? "Updating..."
+            : quiz.isActive
+            ? "Deactivate"
+            : "Activate"}
         </Button>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={duplicateQuiz}
           disabled={isDuplicating}
         >
           <Copy size={16} />
-          {isDuplicating ? 'Duplicating...' : 'Duplicate'}
+          {isDuplicating ? "Duplicating..." : "Duplicate"}
         </Button>
         <Link href={`/admin/quizzes/${quiz.id}/analytics`}>
           <Button variant="outline" size="sm">
@@ -259,14 +273,14 @@ export default function QuizDetailPage() {
             Analytics
           </Button>
         </Link>
-        <Button 
-          variant="destructive" 
-          size="sm" 
+        <Button
+          variant="destructive"
+          size="sm"
           onClick={deleteQuiz}
           disabled={isDeleting}
         >
           <Trash2 size={16} />
-          {isDeleting ? 'Deleting...' : 'Delete'}
+          {isDeleting ? "Deleting..." : "Delete"}
         </Button>
       </div>
 
@@ -280,12 +294,18 @@ export default function QuizDetailPage() {
           </h2>
           <div className="space-y-4">
             <div>
-              <span className="text-sm text-gray-600 font-medium">Description:</span>
-              <p className="text-sm mt-1">{quiz.description || 'No description provided'}</p>
+              <span className="text-sm text-gray-600 font-medium">
+                Description:
+              </span>
+              <p className="text-sm mt-1">
+                {quiz.description || "No description provided"}
+              </p>
             </div>
             <div>
-              <span className="text-sm text-gray-600 font-medium">Category:</span>
-              <p className="text-sm mt-1">{quiz.category || 'Uncategorized'}</p>
+              <span className="text-sm text-gray-600 font-medium">
+                Category:
+              </span>
+              <p className="text-sm mt-1">{quiz.category || "Uncategorized"}</p>
             </div>
             <div className="flex items-center gap-2">
               <Clock size={16} className="text-gray-500" />
@@ -327,17 +347,34 @@ export default function QuizDetailPage() {
             <div className="flex items-center gap-2">
               <TrendingUp size={16} className="text-green-500" />
               <span className="text-sm text-gray-600">Average Score:</span>
-              <p className="text-sm font-medium">{(stats.averageScore ?? 0).toFixed(1)}%</p>
+              <p className="text-sm font-medium">
+                {stats.averageScore != null
+                  ? Number(stats.averageScore).toFixed(1)
+                  : "N/A"}
+                %
+              </p>
             </div>
+
             <div className="flex items-center gap-2">
               <Award size={16} className="text-yellow-500" />
               <span className="text-sm text-gray-600">Pass Rate:</span>
-              <p className="text-sm font-medium">{(stats.passRate ?? 0).toFixed(1)}%</p>
+              <p className="text-sm font-medium">
+                {stats.passRate != null
+                  ? Number(stats.passRate).toFixed(1)
+                  : "N/A"}
+                %
+              </p>
             </div>
+
             <div className="flex items-center gap-2">
               <Target size={16} className="text-purple-500" />
               <span className="text-sm text-gray-600">Completion Rate:</span>
-              <p className="text-sm font-medium">{(stats.completionRate ?? 0).toFixed(1)}%</p>
+              <p className="text-sm font-medium">
+                {stats.completionRate != null
+                  ? Number(stats.completionRate).toFixed(1)
+                  : "N/A"}
+                %
+              </p>
             </div>
             {stats.lastAttempt && (
               <div>
@@ -353,19 +390,31 @@ export default function QuizDetailPage() {
           <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
           <div className="space-y-3">
             <Link href={`/admin/quizzes/${quiz.id}/preview`} className="block">
-              <Button variant="outline" size="sm" className="w-full justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+              >
                 <Eye size={16} />
                 Preview Quiz
               </Button>
             </Link>
             <Link href={`/admin/quizzes/${quiz.id}/results`} className="block">
-              <Button variant="outline" size="sm" className="w-full justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+              >
                 <BarChart3 size={16} />
                 View Results
               </Button>
             </Link>
             <Link href={`/admin/quizzes/${quiz.id}/export`} className="block">
-              <Button variant="outline" size="sm" className="w-full justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+              >
                 <FileText size={16} />
                 Export Data
               </Button>
@@ -377,7 +426,9 @@ export default function QuizDetailPage() {
       {/* Questions Section */}
       <div className="border rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Questions ({questions.length})</h2>
+          <h2 className="text-lg font-semibold">
+            Questions ({questions.length})
+          </h2>
           <Link href={`/admin/quizzes/${quiz.id}/questions`}>
             <Button variant="outline" size="sm">
               <Edit size={16} />
@@ -385,23 +436,29 @@ export default function QuizDetailPage() {
             </Button>
           </Link>
         </div>
-        
+
         {questions.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <p>No questions added yet.</p>
-            <Link href={`/admin/quizzes/${quiz.id}/questions/new`} className="inline-block mt-2">
+            <Link
+              href={`/admin/quizzes/${quiz.id}/questions/new`}
+              className="inline-block mt-2"
+            >
               <Button size="sm">Add First Question</Button>
             </Link>
           </div>
         ) : (
           <div className="space-y-4">
             {questions.map((question, index) => (
-              <div key={question.id} className="border rounded-lg p-4 bg-gray-50">
+              <div
+                key={question.id}
+                className="border rounded-lg p-4 bg-gray-50"
+              >
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-medium">Question {index + 1}</h3>
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      {question.type || 'Multiple Choice'}
+                      {question.type || "Multiple Choice"}
                     </span>
                     {question.points && (
                       <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
@@ -411,20 +468,20 @@ export default function QuizDetailPage() {
                   </div>
                 </div>
                 <p className="text-sm text-gray-700 mb-3">{question.text}</p>
-                
+
                 {question.options && question.options.length > 0 && (
                   <div className="space-y-1">
                     {question.options.map((option, optionIndex) => (
-                      <div 
-                        key={optionIndex} 
+                      <div
+                        key={optionIndex}
                         className={`text-xs px-2 py-1 rounded ${
-                          option === question.correctAnswer 
-                            ? 'bg-green-100 text-green-800 font-medium' 
-                            : 'bg-gray-100 text-gray-700'
+                          option === question.correctAnswer
+                            ? "bg-green-100 text-green-800 font-medium"
+                            : "bg-gray-100 text-gray-700"
                         }`}
                       >
                         {String.fromCharCode(65 + optionIndex)}. {option}
-                        {option === question.correctAnswer && ' ✓'}
+                        {option === question.correctAnswer && " ✓"}
                       </div>
                     ))}
                   </div>
