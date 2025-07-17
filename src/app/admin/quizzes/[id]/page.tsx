@@ -95,34 +95,34 @@ export default function QuizDetailPage() {
     }
   };
 
-  const toggleQuizStatus = async () => {
-    if (!data) return;
+  // const toggleQuizStatus = async () => {
+  //   if (!data) return;
 
-    try {
-      setIsToggling(true);
-      const response = await fetch(`/api/admin/quizzes/${id}/toggle-status`, {
-        method: "PATCH",
-      });
+  //   try {
+  //     setIsToggling(true);
+  //     const response = await fetch(`/api/admin/quizzes/${id}/toggle-status`, {
+  //       method: "PATCH",
+  //     });
 
-      if (!response.ok) {
-        throw new Error("Failed to toggle quiz status");
-      }
+  //     if (!response.ok) {
+  //       throw new Error("Failed to toggle quiz status");
+  //     }
 
-      const result = await response.json();
-      setData({
-        ...data,
-        quiz: {
-          ...data.quiz,
-          isActive: result.quiz.isActive,
-        },
-      });
-    } catch (error) {
-      console.error("Error toggling quiz status:", error);
-      alert("Failed to update quiz status. Please try again.");
-    } finally {
-      setIsToggling(false);
-    }
-  };
+  //     const result = await response.json();
+  //     setData({
+  //       ...data,
+  //       quiz: {
+  //         ...data.quiz,
+  //         isActive: result.quiz.isActive,
+  //       },
+  //     });
+  //   } catch (error) {
+  //     console.error("Error toggling quiz status:", error);
+  //     alert("Failed to update quiz status. Please try again.");
+  //   } finally {
+  //     setIsToggling(false);
+  //   }
+  // };
 
   const deleteQuiz = async () => {
     if (
@@ -152,28 +152,28 @@ export default function QuizDetailPage() {
     }
   };
 
-  const duplicateQuiz = async () => {
-    try {
-      setIsDuplicating(true);
-      const response = await fetch(`/api/admin/quizzes/${id}/duplicate`, {
-        method: "POST",
-      });
+  // const duplicateQuiz = async () => {
+  //   try {
+  //     setIsDuplicating(true);
+  //     const response = await fetch(`/api/admin/quizzes/${id}/duplicate`, {
+  //       method: "POST",
+  //     });
 
-      if (!response.ok) {
-        throw new Error("Failed to duplicate quiz");
-      }
+  //     if (!response.ok) {
+  //       throw new Error("Failed to duplicate quiz");
+  //     }
 
-      const result = await response.json();
-      router.push(
-        `/admin/quizzes/${result.quiz.id}/edit?success=Quiz+duplicated+successfully`
-      );
-    } catch (error) {
-      console.error("Error duplicating quiz:", error);
-      alert("Failed to duplicate quiz. Please try again.");
-    } finally {
-      setIsDuplicating(false);
-    }
-  };
+  //     const result = await response.json();
+  //     router.push(
+  //       `/admin/quizzes/${result.quiz.id}/edit?success=Quiz+duplicated+successfully`
+  //     );
+  //   } catch (error) {
+  //     console.error("Error duplicating quiz:", error);
+  //     alert("Failed to duplicate quiz. Please try again.");
+  //   } finally {
+  //     setIsDuplicating(false);
+  //   }
+  // };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -245,7 +245,7 @@ export default function QuizDetailPage() {
             Edit Quiz
           </Button>
         </Link>
-        <Button
+        {/* <Button
           variant="outline"
           size="sm"
           onClick={toggleQuizStatus}
@@ -257,8 +257,8 @@ export default function QuizDetailPage() {
             : quiz.isActive
             ? "Deactivate"
             : "Activate"}
-        </Button>
-        <Button
+        </Button> */}
+        {/* <Button
           variant="outline"
           size="sm"
           onClick={duplicateQuiz}
@@ -266,13 +266,13 @@ export default function QuizDetailPage() {
         >
           <Copy size={16} />
           {isDuplicating ? "Duplicating..." : "Duplicate"}
-        </Button>
-        <Link href={`/admin/quizzes/${quiz.id}/analytics`}>
+        </Button> */}
+        {/* <Link href={`/admin/quizzes/${quiz.id}/analytics`}>
           <Button variant="outline" size="sm">
             <BarChart3 size={16} />
             Analytics
           </Button>
-        </Link>
+        </Link> */}
         <Button
           variant="destructive"
           size="sm"

@@ -271,13 +271,13 @@ export default function QuizzesPage() {
                         <Edit size={16} />
                       </Button>
                     </Link>
-                    <Button
+                    {/* <Button
                       variant="outline"
                       size="sm"
                       onClick={() => toggleQuizStatus(quiz.id)}
                     >
                       <FileText size={16} />
-                    </Button>
+                    </Button> */}
                     <Button
                       variant="outline"
                       size="sm"
