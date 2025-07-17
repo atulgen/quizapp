@@ -1,4 +1,3 @@
-// app/completion/page.tsx
 "use client";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -13,6 +12,7 @@ export default function CompletionPage() {
     const student = localStorage.getItem('quizStudent');
     if (!student) {
       router.push('/');
+      return; // Early return if no student
     }
     
     // Set up countdown timer
@@ -20,6 +20,7 @@ export default function CompletionPage() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
+          localStorage.removeItem('quizStudent'); // Remove here before redirect
           router.push('/');
           return 0;
         }
@@ -27,10 +28,9 @@ export default function CompletionPage() {
       });
     }, 1000);
 
-    // Clean up (keep student info but remove quiz data)
+    // Clean up only the timer
     return () => {
       clearInterval(timer);
-      localStorage.removeItem('quizStudent');
     };
   }, [router]);
 

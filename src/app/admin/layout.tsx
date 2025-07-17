@@ -74,11 +74,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       href: '/admin/students',
       label: 'Students',
       icon: Users
-    },
-    {
-      href: '/admin/settings',
-      label: 'Settings',
-      icon: Settings
     }
   ];
 

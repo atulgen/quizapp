@@ -1,24 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import  db  from '@/db';
+import db  from '@/db';
 import { quizzes, questions } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-// POST /api/admin/quizzes/[id]/duplicate - Duplicate a quiz
+interface Context {
+  params: {
+    id: string;
+  };
+}
+
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  context: Context
+): Promise<NextResponse> {
   try {
-    const sourceQuizId = parseInt(params.id);
+    const sourceQuizId = parseInt(context.params.id);
+
+    if (isNaN(sourceQuizId)) {
+      return NextResponse.json(
+        { error: 'Invalid quiz ID' },
+        { status: 400 }
+      );
+    }
 
     // Get source quiz
-    const sourceQuiz = await db
+    const [sourceQuiz] = await db
       .select()
       .from(quizzes)
       .where(eq(quizzes.id, sourceQuizId))
       .limit(1);
 
-    if (sourceQuiz.length === 0) {
+    if (!sourceQuiz) {
       return NextResponse.json(
         { error: 'Source quiz not found' },
         { status: 404 }
@@ -29,11 +41,11 @@ export async function POST(
     const [newQuiz] = await db
       .insert(quizzes)
       .values({
-        title: `${sourceQuiz[0].title} (Copy)`,
-        description: sourceQuiz[0].description,
-        timeLimit: sourceQuiz[0].timeLimit,
-        passingScore: sourceQuiz[0].passingScore,
-        isActive: false, // Set as inactive by default
+        title: `${sourceQuiz.title} (Copy)`,
+        description: sourceQuiz.description,
+        timeLimit: sourceQuiz.timeLimit,
+        passingScore: sourceQuiz.passingScore,
+        isActive: false,
       })
       .returning();
 
