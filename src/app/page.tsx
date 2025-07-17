@@ -2,6 +2,7 @@
 "use client";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function Home() {
   const router = useRouter();
@@ -18,6 +19,13 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-lg shadow-sm p-6 md:p-8">
+          <Image
+            src="/Gennextlogoxdarkblue.png"
+            alt="Quiz Image"
+            width={200}
+            height={200}
+            className="rounded-lg mb-6 items-center justify-center mx-auto"
+          />
           <div className="text-center mb-6">
             <h1 className="text-2xl font-semibold text-gray-800 mb-2">
               Welcome to the Quiz

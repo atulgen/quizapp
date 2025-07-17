@@ -21,6 +21,33 @@ export default function QuizPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [student, setStudent] = useState<{id: number, name: string} | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [startTime, setStartTime] = useState<number | null>(null);
+
+  // Prevent reload/refresh and back navigation
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (Object.keys(answers).length > 0 && !isSubmitting) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved answers. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    const handlePopState = () => {
+      if (isSubmitting || Object.keys(answers).length > 0) {
+        router.push('/');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [answers, isSubmitting, router]);
 
   // Load student and quiz data
   useEffect(() => {
@@ -39,11 +66,52 @@ export default function QuizPage() {
         const data = await response.json();
         if (!data.quiz) throw new Error("No active quiz found");
         
-        setQuizData(data);
+        // Check if student already attempted this quiz
+        const attemptCheck = await fetch(
+          `/api/attempts?studentId=${JSON.parse(studentData).id}&quizId=${data.quiz.id}`
+        );
         
-        // Load saved answers
+        if (attemptCheck.ok) {
+          const existingAttempts = await attemptCheck.json();
+          if (existingAttempts.length > 0) {
+            alert('You have already attempted this quiz.');
+            router.push('/');
+            return;
+          }
+        }
+
+        // Clean up options by removing any surrounding quotes or brackets
+        const cleanedQuestions = data.questions.map((question: Question) => ({
+          ...question,
+          options: question.options.map(opt => 
+            typeof opt === 'string' 
+              ? opt.replace(/^["'\[ ]+|["'\] ]+$/g, '') 
+              : opt
+          )
+        }));
+        
+        setQuizData({
+          quiz: data.quiz,
+          questions: cleanedQuestions
+        });
+        
+        // Load saved answers and timer if exists
         const savedAnswers = localStorage.getItem(`quiz_${data.quiz.id}_answers`);
         if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
+
+        const savedTime = localStorage.getItem(`quiz_${data.quiz.id}_time`);
+        if (savedTime) {
+          const { start, duration } = JSON.parse(savedTime);
+          const elapsed = Math.floor((Date.now() - start) / 1000);
+          setTimeLeft(Math.max(0, duration - elapsed));
+        } else {
+          localStorage.setItem(
+            `quiz_${data.quiz.id}_time`,
+            JSON.stringify({ start: Date.now(), duration: 600 })
+          );
+        }
+        
+        setStartTime(Date.now());
       } catch (error) {
         console.error("Quiz load error:", error);
         router.push("/?error=quiz_not_available");
@@ -59,23 +127,36 @@ export default function QuizPage() {
 
   // Timer management
   useEffect(() => {
-    if (!quizData) return;
+    if (!quizData || !startTime) return;
 
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev <= 1) {
+        const newTime = prev - 1;
+        
+        // Save time progress
+        if (quizData) {
+          localStorage.setItem(
+            `quiz_${quizData.quiz.id}_time`,
+            JSON.stringify({ 
+              start: startTime, 
+              duration: 600 - (600 - newTime) 
+            })
+          );
+        }
+
+        if (newTime <= 0) {
           clearInterval(timerRef.current as NodeJS.Timeout);
           handleQuizCompletion();
           return 0;
         }
-        return prev - 1;
+        return newTime;
       });
     }, 1000);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [quizData]);
+  }, [quizData, startTime]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -124,7 +205,7 @@ export default function QuizPage() {
     try {
       const score = calculateScore();
       
-      await fetch("/api/attempts", {
+      const response = await fetch("/api/attempts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -135,8 +216,15 @@ export default function QuizPage() {
         }),
       });
 
+      if (!response.ok) throw new Error('Submission failed');
+
       // Clean up
       localStorage.removeItem(`quiz_${quizData.quiz.id}_answers`);
+      localStorage.removeItem(`quiz_${quizData.quiz.id}_time`);
+      localStorage.removeItem('quizStudent');
+      
+      // Prevent going back
+      window.history.pushState(null, '', '/completion');
       router.push("/completion");
     } catch (error) {
       console.error("Submission error:", error);
@@ -159,11 +247,12 @@ export default function QuizPage() {
 
   const currentQuestion = quizData.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === quizData.questions.length - 1;
+  const totalQuestions = quizData.questions.length;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
-        {/* Quiz Header */}
+        {/* Quiz Header with Timer */}
         <div className="bg-gray-800 text-white p-4">
           <div className="flex justify-between items-center">
             <div>
@@ -171,20 +260,22 @@ export default function QuizPage() {
               <p className="text-sm">Student: {student.name}</p>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-mono">{formatTime(timeLeft)}</div>
-              <p className="text-sm">
-                Question {currentQuestionIndex + 1}/{quizData.questions.length}
+              <div className="text-2xl font-mono bg-gray-900 px-3 py-1 rounded">
+                {formatTime(timeLeft)}
+              </div>
+              <p className="text-sm mt-1">
+                Question {currentQuestionIndex + 1} of {totalQuestions}
               </p>
             </div>
           </div>
         </div>
 
         {/* Progress Bar */}
-        <div className="h-1 bg-gray-200">
+        <div className="h-2 bg-gray-200">
           <div
             className="h-full bg-blue-600 transition-all duration-300"
             style={{
-              width: `${((currentQuestionIndex + 1) / quizData.questions.length) * 100}%`,
+              width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%`,
             }}
           ></div>
         </div>
@@ -198,7 +289,7 @@ export default function QuizPage() {
               const optionLetter = String.fromCharCode(65 + index);
               return (
                 <li key={index}>
-                  <label className={`flex items-center p-3 border rounded-lg cursor-pointer ${
+                  <label className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
                     answers[currentQuestion.id] === optionLetter
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-200 hover:bg-gray-50'
@@ -206,7 +297,7 @@ export default function QuizPage() {
                     <input
                       type="radio"
                       name={`q_${currentQuestion.id}`}
-                      className="mr-3"
+                      className="mr-3 h-4 w-4"
                       checked={answers[currentQuestion.id] === optionLetter}
                       onChange={() => handleAnswerSelect(currentQuestion.id, optionLetter)}
                     />
@@ -218,12 +309,12 @@ export default function QuizPage() {
             })}
           </ul>
 
-          {/* Navigation */}
+          {/* Navigation Buttons */}
           <div className="flex justify-between pt-4 border-t border-gray-200">
             <button
               onClick={goToPreviousQuestion}
               disabled={currentQuestionIndex === 0}
-              className="px-4 py-2 rounded disabled:opacity-50"
+              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               ← Previous
             </button>
@@ -232,15 +323,25 @@ export default function QuizPage() {
               <button
                 onClick={handleQuizCompletion}
                 disabled={!answers[currentQuestion.id] || isSubmitting}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Quiz'}
+                {isSubmitting ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Submitting...
+                  </span>
+                ) : (
+                  'Submit Quiz'
+                )}
               </button>
             ) : (
               <button
                 onClick={goToNextQuestion}
                 disabled={!answers[currentQuestion.id]}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
                 Next →
               </button>

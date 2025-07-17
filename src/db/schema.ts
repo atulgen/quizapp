@@ -190,6 +190,7 @@ export const students = pgTable('students', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
   email: varchar('email', { length: 100 }).notNull(),
+  phone: varchar('phone', { length: 20 }),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

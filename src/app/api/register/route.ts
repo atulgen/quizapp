@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { name, email } = await request.json();
+    const { name, email , phone } = await request.json();
 
     // Check if student exists or create new
     const [existingStudent] = await db

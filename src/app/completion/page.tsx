@@ -8,7 +8,10 @@ export default function CompletionPage() {
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes in seconds
 
   const handleNavigation = () => {
+    // Clear all quiz-related data
     localStorage.removeItem('quizStudent');
+    // Prevent going back to quiz
+    window.history.pushState(null, '', '/');
     router.push('/');
   };
 
@@ -16,8 +19,8 @@ export default function CompletionPage() {
     // Check if quiz was completed
     const student = localStorage.getItem('quizStudent');
     if (!student) {
-      router.push('/');
-      return; // Early return if no student
+      handleNavigation();
+      return;
     }
     
     // Set up countdown timer
@@ -25,16 +28,23 @@ export default function CompletionPage() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleNavigation(); // Use the same cleanup function
+          handleNavigation();
           return 0;
         }
         return prev - 1;
       });
-    }, 1000);
+    }, 8000);
 
-    // Clean up only the timer
+    // Prevent going back
+    window.history.pushState(null, '', '/completion');
+    window.addEventListener('popstate', () => {
+      window.history.pushState(null, '', '/completion');
+      handleNavigation();
+    });
+
     return () => {
       clearInterval(timer);
+      window.removeEventListener('popstate', () => {});
     };
   }, [router]);
 
