@@ -4,8 +4,8 @@ import { SignJWT } from 'jose';
 import bcrypt from 'bcryptjs';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
-import { adminUsers } from '@/db/schema';
 import db from '@/db';
+import { admins } from '@/db/schema';
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
 
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find admin user in database
-    const demoUserArr = await db.select().from(adminUsers).where(eq(adminUsers.username, username)).limit(1);
+    const demoUserArr = await db.select().from(admins).where(eq(admins.username, username)).limit(1);
     const demoUser = demoUserArr[0];
 
     if (!demoUser) {

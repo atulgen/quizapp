@@ -1,208 +1,253 @@
+// app/quiz/page.tsx
 "use client";
-import Link from "next/link";
-import { useState, useEffect, useRef, ChangeEvent } from "react";
-import useSWR from "swr";
-import { TSavedAnswer } from "@/types/quiz";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { InferSelectModel } from "drizzle-orm";
+import { quizzes, questions, attempts } from "@/db/schema";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+type Quiz = InferSelectModel<typeof quizzes>;
+type Question = InferSelectModel<typeof questions> & { options: string[] };
+type Attempt = InferSelectModel<typeof attempts>;
 
-export default function Quiz() {
-  const Ref = useRef<number | null>(null);
-  const [timer, setTimer] = useState("00:10:00");
-  const [pageIndex, setPageIndex] = useState(0);
-  const [answered, setAnswered] = useState<TSavedAnswer>({});
+export default function QuizPage() {
+  const router = useRouter();
+  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [quizData, setQuizData] = useState<{
+    quiz: Quiz;
+    questions: Question[];
+  } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [student, setStudent] = useState<{id: number, name: string} | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Timer functions
-  const getTimeRemaining = (e: Date) => {
-    const total = Date.parse(e.toString()) - Date.parse(new Date().toString());
-    const seconds = Math.floor((total / 1000) % 60);
-    const minutes = Math.floor((total / 1000 / 60) % 60);
-    const hours = Math.floor((total / 1000 / 60 / 60) % 24);
-    return { total, hours, minutes, seconds };
+  // Load student and quiz data
+  useEffect(() => {
+    const studentData = localStorage.getItem("quizStudent");
+    if (!studentData) {
+      router.push("/register");
+      return;
+    }
+    setStudent(JSON.parse(studentData));
+
+    const fetchQuiz = async () => {
+      try {
+        const response = await fetch("/api/quiz");
+        if (!response.ok) throw new Error("Quiz not available");
+        
+        const data = await response.json();
+        if (!data.quiz) throw new Error("No active quiz found");
+        
+        setQuizData(data);
+        
+        // Load saved answers
+        const savedAnswers = localStorage.getItem(`quiz_${data.quiz.id}_answers`);
+        if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
+      } catch (error) {
+        console.error("Quiz load error:", error);
+        router.push("/?error=quiz_not_available");
+      }
+    };
+
+    fetchQuiz();
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [router]);
+
+  // Timer management
+  useEffect(() => {
+    if (!quizData) return;
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current as NodeJS.Timeout);
+          handleQuizCompletion();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [quizData]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const startTimer = (e: Date) => {
-    const { total, hours, minutes, seconds } = getTimeRemaining(e);
-    if (total >= 0) {
-      setTimer(
-        `${hours > 9 ? hours : "0" + hours}:${
-          minutes > 9 ? minutes : "0" + minutes
-        }:${seconds > 9 ? seconds : "0" + seconds}`
+  const handleAnswerSelect = (questionId: number, option: string) => {
+    const newAnswers = { ...answers, [questionId]: option };
+    setAnswers(newAnswers);
+    if (quizData) {
+      localStorage.setItem(
+        `quiz_${quizData.quiz.id}_answers`,
+        JSON.stringify(newAnswers)
       );
     }
   };
 
-  const clearTimer = (e: Date) => {
-    setTimer("00:10:00");
-    if (Ref.current) clearInterval(Ref.current);
-    Ref.current = window.setInterval(() => startTimer(e), 1000);
-  };
-
-  const getDeadTime = (): Date => {
-    const deadline = new Date();
-    deadline.setSeconds(deadline.getSeconds() + 600);
-    return deadline;
-  };
-
-  useEffect(() => {
-    clearTimer(getDeadTime());
-    return () => {
-      if (Ref.current) clearInterval(Ref.current);
-    };
-  }, []);
-
-  // Load saved answers from localStorage
-  useEffect(() => {
-    const saved = window.localStorage.getItem("quiz");
-    if (saved) {
-      setAnswered(JSON.parse(saved));
+  const goToNextQuestion = () => {
+    if (quizData && currentQuestionIndex < quizData.questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
-  }, []);
-
-  // Fetch quiz data
-  const { data, error } = useSWR(`/api/quiz?page=${pageIndex}`, fetcher);
-
-  const addAnswer = (e: ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = e.target;
-    const latestAnswers = { ...answered, [name]: value };
-    setAnswered(latestAnswers);
-    window.localStorage.setItem("quiz", JSON.stringify(latestAnswers));
   };
 
-  if (error) {
+  const goToPreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  const calculateScore = () => {
+    if (!quizData) return 0;
+    
+    const correct = quizData.questions.filter(
+      (q) => answers[q.id] === q.correctAnswer
+    ).length;
+    
+    return Math.round((correct / quizData.questions.length) * 100);
+  };
+
+  const handleQuizCompletion = async () => {
+    if (!quizData || !student || isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      const score = calculateScore();
+      
+      await fetch("/api/attempts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quizId: quizData.quiz.id,
+          studentId: student.id,
+          score,
+          passed: score >= (quizData.quiz.passingScore || 70),
+        }),
+      });
+
+      // Clean up
+      localStorage.removeItem(`quiz_${quizData.quiz.id}_answers`);
+      router.push("/completion");
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert("Failed to submit quiz. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!quizData || !student) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4 text-center">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">{timer}</h2>
-          <h3 className="text-xl text-red-500 mb-6">Failed to load quiz data</h3>
-          <Link 
-            href="/" 
-            className="inline-block px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Return Home
-          </Link>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-800 mx-auto mb-4"></div>
+          <p>Loading quiz...</p>
         </div>
       </div>
     );
   }
 
-  if (!data) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">{timer}</h2>
-          <h3 className="text-xl text-gray-600">Loading quiz...</h3>
-          <div className="mt-4 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-blue-500 rounded-full animate-pulse"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const { quiz, next, prev, page, total } = data;
+  const currentQuestion = quizData.questions[currentQuestionIndex];
+  const isLastQuestion = currentQuestionIndex === quizData.questions.length - 1;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-  {timer === "00:00:00" ? (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="bg-white p-6 rounded-lg shadow-sm max-w-md w-full text-center">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Time's up!</h2>
-        <p className="text-gray-600 mb-6">Redirecting to results...</p>
-        <Link
-          href="/result"
-          replace
-          className="inline-block px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
-        >
-          View Results Now
-        </Link>
-      </div>
-    </div>
-  ) : (
-    <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-sm overflow-hidden">
-      {/* Header with timer and progress */}
-      <div className="bg-gray-800 p-4 text-white">
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-medium">{timer}</h2>
-          <p className="text-sm">
-            Question {parseInt(page) + 1} of {total}
-          </p>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+        {/* Quiz Header */}
+        <div className="bg-gray-800 text-white p-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-xl font-bold">{quizData.quiz.title}</h1>
+              <p className="text-sm">Student: {student.name}</p>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-mono">{formatTime(timeLeft)}</div>
+              <p className="text-sm">
+                Question {currentQuestionIndex + 1}/{quizData.questions.length}
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Quiz content */}
-      <div className="p-4 md:p-6">
-        <h3 className="text-lg font-medium text-gray-800 mb-4">
-          {quiz.question}
-        </h3>
-        
-        <ul className="space-y-2 mb-6">
-          {quiz.options.map((option: string, i: number) => (
-            <li key={i}>
-              <label className={`flex items-center p-3 border rounded-md cursor-pointer transition-all ${
-                answered[quiz.id] === option 
-                  ? 'border-gray-800 bg-gray-100' 
-                  : 'border-gray-200 hover:bg-gray-50'
-              }`}>
-                <input
-                  type="radio"
-                  id={`quiz-${quiz.id}-option-${i}`}
-                  name={quiz.id.toString()}
-                  onChange={addAnswer}
-                  value={option}
-                  checked={answered[quiz.id] === option}
-                  className="h-4 w-4 text-gray-800 focus:ring-gray-500"
-                />
-                <span className="ml-3 text-gray-700">{option}</span>
-              </label>
-            </li>
-          ))}
-        </ul>
+        {/* Progress Bar */}
+        <div className="h-1 bg-gray-200">
+          <div
+            className="h-full bg-blue-600 transition-all duration-300"
+            style={{
+              width: `${((currentQuestionIndex + 1) / quizData.questions.length) * 100}%`,
+            }}
+          ></div>
+        </div>
 
-        {/* Navigation buttons */}
-        <div className="flex justify-between">
-          {prev ? (
+        {/* Question Area */}
+        <div className="p-6">
+          <h2 className="text-lg font-semibold mb-4">{currentQuestion.text}</h2>
+          
+          <ul className="space-y-3 mb-6">
+            {currentQuestion.options.map((option, index) => {
+              const optionLetter = String.fromCharCode(65 + index);
+              return (
+                <li key={index}>
+                  <label className={`flex items-center p-3 border rounded-lg cursor-pointer ${
+                    answers[currentQuestion.id] === optionLetter
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:bg-gray-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name={`q_${currentQuestion.id}`}
+                      className="mr-3"
+                      checked={answers[currentQuestion.id] === optionLetter}
+                      onChange={() => handleAnswerSelect(currentQuestion.id, optionLetter)}
+                    />
+                    <span className="font-medium">{optionLetter}.</span>
+                    <span className="ml-2">{option}</span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Navigation */}
+          <div className="flex justify-between pt-4 border-t border-gray-200">
             <button
-              onClick={() => setPageIndex(pageIndex - 1)}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              onClick={goToPreviousQuestion}
+              disabled={currentQuestionIndex === 0}
+              className="px-4 py-2 rounded disabled:opacity-50"
             >
               ← Previous
             </button>
-          ) : (
-            <Link
-              href="/"
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              Cancel Quiz
-            </Link>
-          )}
 
-          {next ? (
-            <button
-              onClick={() => setPageIndex(pageIndex + 1)}
-              disabled={answered[quiz.id] === undefined}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                answered[quiz.id] === undefined
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-gray-800 text-white hover:bg-gray-700'
-              }`}
-            >
-              Next →
-            </button>
-          ) : (
-            answered[quiz.id] !== undefined && (
-              <Link
-                href="/result"
-                className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
+            {isLastQuestion ? (
+              <button
+                onClick={handleQuizCompletion}
+                disabled={!answers[currentQuestion.id] || isSubmitting}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
               >
-                Finish Quiz
-              </Link>
-            )
-          )}
+                {isSubmitting ? 'Submitting...' : 'Submit Quiz'}
+              </button>
+            ) : (
+              <button
+                onClick={goToNextQuestion}
+                disabled={!answers[currentQuestion.id]}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+              >
+                Next →
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
-  )}
-</div>
   );
 }

@@ -94,26 +94,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="border-2 border-black bg-white hover:bg-gray-50"
-        >
-          {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-        </Button>
-      </div>
-
-      {/* Sidebar */}
-      <div className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-black text-white transform transition-transform duration-300 ease-in-out
-        lg:translate-x-0 lg:static lg:inset-0
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
-        <div className="flex flex-col h-full">
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar - Desktop */}
+      <div className="hidden lg:flex lg:flex-shrink-0">
+        <div className="w-64 flex flex-col bg-black text-white border-r border-gray-200">
           {/* Header */}
           <div className="p-6 border-b border-gray-700">
             <h1 className="text-xl font-bold">Quiz Admin</h1>
@@ -127,8 +111,57 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4">
-            <ul className="space-y-2">
+          <nav className="flex-1 p-4 overflow-y-auto">
+            <ul className="space-y-1">
+              {navItems.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors group"
+                  >
+                    <item.icon className="w-5 h-5 mr-3" />
+                    <span className="flex-1">{item.label}</span>
+                    <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {/* Logout */}
+          <div className="p-4 border-t border-gray-700">
+            <Button
+              onClick={handleLogout}
+              variant="ghost"
+              className="w-full justify-start text-white hover:bg-gray-800 hover:text-white"
+            >
+              <LogOut className="w-5 h-5 mr-3" />
+              Logout
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile sidebar */}
+      <div className={`
+        fixed inset-y-0 left-0 z-40 w-64 bg-black text-white transform transition-transform duration-300 ease-in-out
+        lg:hidden
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="flex flex-col h-full">
+          <div className="p-6 border-b border-gray-700">
+            <h1 className="text-xl font-bold">Quiz Admin</h1>
+            {user && (
+              <div className="mt-4">
+                <p className="text-sm text-gray-300">Welcome back,</p>
+                <p className="font-medium">{user.username}</p>
+                <p className="text-xs text-gray-400 capitalize">{user.role}</p>
+              </div>
+            )}
+          </div>
+
+          <nav className="flex-1 p-4 overflow-y-auto">
+            <ul className="space-y-1">
               {navItems.map((item) => (
                 <li key={item.href}>
                   <Link
@@ -145,7 +178,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </ul>
           </nav>
 
-          {/* Logout */}
           <div className="p-4 border-t border-gray-700">
             <Button
               onClick={handleLogout}
@@ -160,9 +192,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
 
       {/* Main content */}
-      <div className="lg:ml-64">
-        <div className="p-6 lg:p-8">
-          {children}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile header */}
+        <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="border-2 border-black bg-white hover:bg-gray-50"
+          >
+            {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </Button>
+          <h1 className="text-lg font-semibold">Quiz Admin</h1>
+          <div className="w-10"></div> {/* Spacer for balance */}
+        </div>
+
+        {/* Content area */}
+        <div className="flex-1 overflow-auto bg-gray-50">
+          <div className="p-6 w-full mx-auto">
+            {children}
+          </div>
         </div>
       </div>
 

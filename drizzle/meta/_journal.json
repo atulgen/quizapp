@@ -15,6 +15,20 @@
       "when": 1752689376513,
       "tag": "0001_light_kabuki",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1752743395538,
+      "tag": "0002_classy_lady_ursula",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1752743928923,
+      "tag": "0003_confused_randall",
+      "breakpoints": true
     }
   ]
 }

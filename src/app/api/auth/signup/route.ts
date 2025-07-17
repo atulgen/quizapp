@@ -1,6 +1,7 @@
 // app/api/auth/signup/route.ts
 import db from '@/db';
-import { adminUsers } from '@/db/schema';
+import { admins } from '@/db/schema';
+
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { SignJWT, jwtVerify } from 'jose';
@@ -117,8 +118,8 @@ export async function POST(request: NextRequest) {
     // Check if username already exists
     const existingUserByUsername = await db
       .select()
-      .from(adminUsers)
-      .where(eq(adminUsers.username, username))
+      .from(admins)
+      .where(eq(admins.username, username))
       .limit(1);
 
     if (existingUserByUsername.length > 0) {
@@ -131,8 +132,8 @@ export async function POST(request: NextRequest) {
     // Check if email already exists
     const existingUserByEmail = await db
       .select()
-      .from(adminUsers)
-      .where(eq(adminUsers.email, email))
+      .from(admins)
+      .where(eq(admins.email, email))
       .limit(1);
 
     if (existingUserByEmail.length > 0) {
@@ -148,7 +149,7 @@ export async function POST(request: NextRequest) {
 
     // Create new admin user
     const newUser = await db
-      .insert(adminUsers)
+      .insert(admins)
       .values({
         username,
         password: hashedPassword,
