@@ -218,7 +218,7 @@ export default function QuizPage() {
       // Clean up
       localStorage.removeItem(`quiz_${quizData.quiz.id}_answers`);
       localStorage.removeItem(`quiz_${quizData.quiz.id}_time`);
-      localStorage.removeItem('quizStudent');
+      
       
       // Prevent going back
       window.history.pushState(null, '', '/completion');
