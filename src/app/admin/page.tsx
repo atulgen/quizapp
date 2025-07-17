@@ -1,13 +1,12 @@
-// app/admin/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  FileText, 
-  Users, 
-  TrendingUp, 
+import {
+  FileText,
+  Users,
+  TrendingUp,
   Clock,
   Plus,
   Eye,
@@ -46,9 +45,8 @@ export default function AdminDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      // Simulate API calls with mock data
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       setStats({
         totalQuizzes: 24,
         totalStudents: 158,
@@ -57,34 +55,10 @@ export default function AdminDashboard() {
       });
 
       setRecentQuizzes([
-        {
-          id: 1,
-          title: "JavaScript Fundamentals",
-          attempts: 45,
-          avgScore: 82.3,
-          createdAt: "2024-01-15"
-        },
-        {
-          id: 2,
-          title: "React Basics",
-          attempts: 38,
-          avgScore: 78.9,
-          createdAt: "2024-01-14"
-        },
-        {
-          id: 3,
-          title: "Database Design",
-          attempts: 29,
-          avgScore: 71.2,
-          createdAt: "2024-01-13"
-        },
-        {
-          id: 4,
-          title: "API Development",
-          attempts: 33,
-          avgScore: 85.1,
-          createdAt: "2024-01-12"
-        }
+        { id: 1, title: "JavaScript Fundamentals", attempts: 45, avgScore: 82.3, createdAt: "2024-01-15" },
+        { id: 2, title: "React Basics", attempts: 38, avgScore: 78.9, createdAt: "2024-01-14" },
+        { id: 3, title: "Database Design", attempts: 29, avgScore: 71.2, createdAt: "2024-01-13" },
+        { id: 4, title: "API Development", attempts: 33, avgScore: 85.1, createdAt: "2024-01-12" }
       ]);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -93,182 +67,154 @@ export default function AdminDashboard() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+  const formatDate = (date: string) => new Date(date).toLocaleDateString('en-GB');
+
+  const cardStyle = "border bg-white rounded-lg shadow-sm hover:shadow transition-all";
+  const cardContent = "p-4 md:p-5";
+  const statLabel = "text-xs text-gray-500 uppercase font-semibold tracking-wider";
+  const statValue = "text-xl md:text-2xl font-bold text-gray-800 mt-1";
+  const iconWrap = "bg-gray-100 p-2 rounded-md";
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i} className="border-2 border-black">
-              <CardContent className="p-6">
-                <div className="animate-pulse space-y-3">
-                  <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-                  <div className="h-8 bg-gray-300 rounded w-1/2"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      <div className="min-h-screen bg-gray-50 p-6 animate-pulse">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="h-10 bg-gray-200 rounded w-48"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-16 bg-white rounded-md border"></div>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-black">Dashboard</h1>
-          <p className="text-gray-600 mt-2">Welcome to your quiz management system</p>
+    <div className="min-h-screen bg-gray-50 py-2">
+      <div className="max-w-7xl mx-auto px-4 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p className="text-sm text-gray-500">Quiz Management Overview</p>
+          </div>
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Create Quiz
+          </Button>
         </div>
-        <Button className="bg-black hover:bg-gray-800 text-white border-2 border-black">
-          <Plus className="w-4 h-4 mr-2" />
-          Create Quiz
-        </Button>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-2 border-black">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Quizzes</p>
-                <p className="text-2xl font-bold text-black">{stats.totalQuizzes}</p>
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <Card className={cardStyle}>
+            <CardContent className={cardContent}>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className={statLabel}>Total Quizzes</p>
+                  <p className={statValue}>{stats.totalQuizzes}</p>
+                </div>
+                <div className={iconWrap}><FileText className="w-5 h-5 text-blue-600" /></div>
               </div>
-              <div className="bg-black p-3 rounded-lg">
-                <FileText className="w-6 h-6 text-white" />
+            </CardContent>
+          </Card>
+          <Card className={cardStyle}>
+            <CardContent className={cardContent}>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className={statLabel}>Total Students</p>
+                  <p className={statValue}>{stats.totalStudents}</p>
+                </div>
+                <div className={iconWrap}><Users className="w-5 h-5 text-green-600" /></div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          <Card className={cardStyle}>
+            <CardContent className={cardContent}>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className={statLabel}>Total Attempts</p>
+                  <p className={statValue}>{stats.totalAttempts}</p>
+                </div>
+                <div className={iconWrap}><Clock className="w-5 h-5 text-yellow-500" /></div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className={cardStyle}>
+            <CardContent className={cardContent}>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className={statLabel}>Average Score</p>
+                  <p className={statValue}>{stats.averageScore}%</p>
+                </div>
+                <div className={iconWrap}><TrendingUp className="w-5 h-5 text-purple-600" /></div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card className="border-2 border-black">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Students</p>
-                <p className="text-2xl font-bold text-black">{stats.totalStudents}</p>
-              </div>
-              <div className="bg-black p-3 rounded-lg">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-black">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Attempts</p>
-                <p className="text-2xl font-bold text-black">{stats.totalAttempts}</p>
-              </div>
-              <div className="bg-black p-3 rounded-lg">
-                <Clock className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-black">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Average Score</p>
-                <p className="text-2xl font-bold text-black">{stats.averageScore}%</p>
-              </div>
-              <div className="bg-black p-3 rounded-lg">
-                <TrendingUp className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Quizzes */}
-      <Card className="border-2 border-black">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold text-black">Recent Quizzes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recentQuizzes.map((quiz) => (
-              <div key={quiz.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                <div className="flex-1">
-                  <h3 className="font-medium text-black">{quiz.title}</h3>
-                  <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+        {/* Recent Quizzes */}
+        <Card className="bg-white rounded-lg shadow-sm">
+          <CardHeader className="  border-b">
+            <CardTitle className="text-lg font-semibold text-gray-800">Recent Quizzes</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 divide-y">
+            {recentQuizzes.map(quiz => (
+              <div key={quiz.id} className="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition">
+                <div>
+                  <h3 className="font-medium text-gray-800">{quiz.title}</h3>
+                  <div className="text-sm text-gray-500 mt-1 space-x-4">
                     <span>{quiz.attempts} attempts</span>
                     <span>Avg: {quiz.avgScore}%</span>
-                    <span>Created: {formatDate(quiz.createdAt)}</span>
+                    <span>{formatDate(quiz.createdAt)}</span>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" className="border-black hover:bg-black hover:text-white">
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="border-gray-300 hover:bg-gray-100">
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" size="sm" className="border-black hover:bg-black hover:text-white">
+                  <Button variant="outline" size="sm" className="border-gray-300 hover:bg-gray-100">
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" size="sm" className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white">
+                  <Button variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             ))}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Quick Actions */}
-      <Card className="border-2 border-black">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold text-black">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Button 
-              variant="outline" 
-              className="h-24 border-2 border-black hover:bg-black hover:text-white justify-start"
-            >
-              <div className="text-left">
-                <FileText className="w-6 h-6 mb-2" />
-                <p className="font-medium">Create New Quiz</p>
-                <p className="text-sm opacity-70">Add questions and settings</p>
+        {/* Quick Actions */}
+        {/* <Card className="bg-white border rounded-lg shadow-sm">
+          <CardHeader className="px-4 py-3 border-b">
+            <CardTitle className="text-lg font-semibold text-gray-800">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button variant="outline" className="h-20 flex items-start gap-3 text-left p-3 border-2 border-gray-300 hover:border-gray-400 rounded-lg">
+              <FileText className="w-5 h-5 mt-1 text-gray-600" />
+              <div>
+                <p className="font-medium text-gray-800">Create New Quiz</p>
+                <p className="text-sm text-gray-500">Add questions and settings</p>
               </div>
             </Button>
-            
-            <Button 
-              variant="outline" 
-              className="h-24 border-2 border-black hover:bg-black hover:text-white justify-start"
-            >
-              <div className="text-left">
-                <Users className="w-6 h-6 mb-2" />
-                <p className="font-medium">Manage Students</p>
-                <p className="text-sm opacity-70">View and edit student data</p>
+            <Button variant="outline" className="h-20 flex items-start gap-3 text-left p-3 border-2 border-gray-300 hover:border-gray-400 rounded-lg">
+              <Users className="w-5 h-5 mt-1 text-gray-600" />
+              <div>
+                <p className="font-medium text-gray-800">Manage Students</p>
+                <p className="text-sm text-gray-500">View and edit student data</p>
               </div>
             </Button>
-            
-            <Button 
-              variant="outline" 
-              className="h-24 border-2 border-black hover:bg-black hover:text-white justify-start"
-            >
-              <div className="text-left">
-                <TrendingUp className="w-6 h-6 mb-2" />
-                <p className="font-medium">View Reports</p>
-                <p className="text-sm opacity-70">Analyze quiz performance</p>
+            <Button variant="outline" className="h-20 flex items-start gap-3 text-left p-3 border-2 border-gray-300 hover:border-gray-400 rounded-lg">
+              <TrendingUp className="w-5 h-5 mt-1 text-gray-600" />
+              <div>
+                <p className="font-medium text-gray-800">View Reports</p>
+                <p className="text-sm text-gray-500">Analyze quiz performance</p>
               </div>
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card> */}
+      </div>
     </div>
   );
 }
