@@ -1,4 +1,3 @@
-// app/quiz/page.tsx
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -11,7 +10,7 @@ type Attempt = InferSelectModel<typeof attempts>;
 
 export default function QuizPage() {
   const router = useRouter();
-  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [quizData, setQuizData] = useState<{
@@ -22,8 +21,9 @@ export default function QuizPage() {
   const [student, setStudent] = useState<{id: number, name: string} | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
-  // Prevent reload/refresh and back navigation
+  // Prevent navigation away from quiz
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (Object.keys(answers).length > 0 && !isSubmitting) {
@@ -33,14 +33,13 @@ export default function QuizPage() {
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
     const handlePopState = () => {
       if (isSubmitting || Object.keys(answers).length > 0) {
         router.push('/');
       }
     };
 
+    window.addEventListener('beforeunload', handleBeforeUnload);
     window.addEventListener('popstate', handlePopState);
 
     return () => {
@@ -49,7 +48,7 @@ export default function QuizPage() {
     };
   }, [answers, isSubmitting, router]);
 
-  // Load student and quiz data
+  // Load quiz data and initialize timer
   useEffect(() => {
     const studentData = localStorage.getItem("quizStudent");
     if (!studentData) {
@@ -65,8 +64,9 @@ export default function QuizPage() {
         
         const data = await response.json();
         if (!data.quiz) throw new Error("No active quiz found");
+        if (data.quiz.timeLimit <= 0) throw new Error("Invalid time limit");
         
-        // Check if student already attempted this quiz
+        // Check for existing attempts
         const attemptCheck = await fetch(
           `/api/attempts?studentId=${JSON.parse(studentData).id}&quizId=${data.quiz.id}`
         );
@@ -80,7 +80,7 @@ export default function QuizPage() {
           }
         }
 
-        // Clean up options by removing any surrounding quotes or brackets
+        // Process questions
         const cleanedQuestions = data.questions.map((question: Question) => ({
           ...question,
           options: question.options.map(opt => 
@@ -95,20 +95,23 @@ export default function QuizPage() {
           questions: cleanedQuestions
         });
         
-        // Load saved answers and timer if exists
-        const savedAnswers = localStorage.getItem(`quiz_${data.quiz.id}_answers`);
-        if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
-
+        // Initialize timer (convert minutes to seconds)
+        const quizDuration = data.quiz.timeLimit * 60;
         const savedTime = localStorage.getItem(`quiz_${data.quiz.id}_time`);
+        
         if (savedTime) {
-          const { start, duration } = JSON.parse(savedTime);
+          const { start, remaining } = JSON.parse(savedTime);
           const elapsed = Math.floor((Date.now() - start) / 1000);
-          setTimeLeft(Math.max(0, duration - elapsed));
+          setTimeLeft(Math.max(0, remaining - elapsed));
         } else {
           localStorage.setItem(
             `quiz_${data.quiz.id}_time`,
-            JSON.stringify({ start: Date.now(), duration: 600 })
+            JSON.stringify({ 
+              start: Date.now(), 
+              remaining: quizDuration 
+            })
           );
+          setTimeLeft(quizDuration);
         }
         
         setStartTime(Date.now());
@@ -125,27 +128,23 @@ export default function QuizPage() {
     };
   }, [router]);
 
-  // Timer management
+  // Timer countdown
   useEffect(() => {
-    if (!quizData || !startTime) return;
+    if (!quizData || timeLeft <= 0) return;
 
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         const newTime = prev - 1;
         
-        // Save time progress
-        if (quizData) {
-          localStorage.setItem(
-            `quiz_${quizData.quiz.id}_time`,
-            JSON.stringify({ 
-              start: startTime, 
-              duration: 600 - (600 - newTime) 
-            })
-          );
-        }
+        localStorage.setItem(
+          `quiz_${quizData.quiz.id}_time`,
+          JSON.stringify({ 
+            start: startTime!, 
+            remaining: newTime 
+          })
+        );
 
         if (newTime <= 0) {
-          clearInterval(timerRef.current as NodeJS.Timeout);
           handleQuizCompletion();
           return 0;
         }
@@ -156,9 +155,10 @@ export default function QuizPage() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [quizData, startTime]);
+  }, [quizData, startTime, timeLeft]);
 
   const formatTime = (seconds: number) => {
+    if (seconds <= 0) return "00:00";
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
@@ -189,11 +189,9 @@ export default function QuizPage() {
 
   const calculateScore = () => {
     if (!quizData) return 0;
-    
     const correct = quizData.questions.filter(
       (q) => answers[q.id] === q.correctAnswer
     ).length;
-    
     return Math.round((correct / quizData.questions.length) * 100);
   };
 
@@ -204,7 +202,6 @@ export default function QuizPage() {
     
     try {
       const score = calculateScore();
-      
       const response = await fetch("/api/attempts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -234,6 +231,18 @@ export default function QuizPage() {
     }
   };
 
+  const confirmSubmit = () => {
+    if (timeLeft > 60) {
+      setShowSubmitConfirm(true);
+    } else if (timeLeft > 0) {
+      if (confirm(`You have ${formatTime(timeLeft)} remaining. Submit now?`)) {
+        handleQuizCompletion();
+      }
+    } else {
+      handleQuizCompletion();
+    }
+  };
+
   if (!quizData || !student) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -251,6 +260,33 @@ export default function QuizPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
+      {/* Submit Confirmation Modal */}
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Confirm Submission</h3>
+            <p className="mb-4">You still have {formatTime(timeLeft)} remaining. Are you sure you want to submit now?</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowSubmitConfirm(false)}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowSubmitConfirm(false);
+                  handleQuizCompletion();
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Submit Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
         {/* Quiz Header with Timer */}
         <div className="bg-gray-800 text-white p-4">
@@ -260,7 +296,9 @@ export default function QuizPage() {
               <p className="text-sm">Student: {student.name}</p>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-mono bg-gray-900 px-3 py-1 rounded">
+              <div className={`text-2xl font-mono px-3 py-1 rounded ${
+                timeLeft < 60 ? 'bg-red-900' : 'bg-gray-900'
+              }`}>
                 {formatTime(timeLeft)}
               </div>
               <p className="text-sm mt-1">
@@ -321,7 +359,7 @@ export default function QuizPage() {
 
             {isLastQuestion ? (
               <button
-                onClick={handleQuizCompletion}
+                onClick={confirmSubmit}
                 disabled={!answers[currentQuestion.id] || isSubmitting}
                 className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email }),
+        body: JSON.stringify({ name, email, phone }),
       });
 
       if (!response.ok) {
@@ -85,12 +86,15 @@ export default function RegisterPage() {
           </div>
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number (optional)
+              Phone Number
             </label>
             <input
-              type="text"
+              type="tel"
               id="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+              required
             />
           </div>
           

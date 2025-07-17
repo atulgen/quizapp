@@ -23,7 +23,7 @@ export default function CompletionPage() {
       return;
     }
     
-    // Set up countdown timer
+    // Set up countdown timer (corrected to 1000ms)
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -33,18 +33,20 @@ export default function CompletionPage() {
         }
         return prev - 1;
       });
-    }, 8000);
+    }, 1000); // Changed from 8000 to 1000 for 1-second intervals
 
     // Prevent going back
     window.history.pushState(null, '', '/completion');
-    window.addEventListener('popstate', () => {
+    const handlePopState = () => {
       window.history.pushState(null, '', '/completion');
       handleNavigation();
-    });
+    };
+    
+    window.addEventListener('popstate', handlePopState);
 
     return () => {
       clearInterval(timer);
-      window.removeEventListener('popstate', () => {});
+      window.removeEventListener('popstate', handlePopState);
     };
   }, [router]);
 

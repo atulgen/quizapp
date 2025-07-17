@@ -1,14 +1,31 @@
 // app/admin/quizzes/create/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Upload,
+  X,
+  Check,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface QuizData {
   title: string;
@@ -24,8 +41,15 @@ interface Question {
   correctAnswer: string;
 }
 
+interface ImportedQuestion {
+  question: string;
+  options: string[];
+  correct_answer: string;
+}
+
 export default function CreateQuizPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [quizData, setQuizData] = useState<QuizData>({
     title: "",
     description: "",
@@ -34,9 +58,11 @@ export default function CreateQuizPage() {
     isActive: true,
   });
   const [questions, setQuestions] = useState<Question[]>([
-    { text: "", options: ["", "", "", ""], correctAnswer: "A" }
+    { text: "", options: ["", "", "", ""], correctAnswer: "A" },
   ]);
+  const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const handleQuizChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -88,6 +114,16 @@ export default function CreateQuizPage() {
   const removeQuestion = (index: number) => {
     if (questions.length > 1) {
       setQuestions((prev) => prev.filter((_, i) => i !== index));
+      setSelectedQuestions(selectedQuestions.filter((i) => i !== index));
+    }
+  };
+
+  const removeSelectedQuestions = () => {
+    if (selectedQuestions.length > 0) {
+      setQuestions((prev) =>
+        prev.filter((_, i) => !selectedQuestions.includes(i))
+      );
+      setSelectedQuestions([]);
     }
   };
 
@@ -101,6 +137,14 @@ export default function CreateQuizPage() {
         ];
         return newQuestions;
       });
+      // Update selected indices
+      setSelectedQuestions((prev) =>
+        prev.map((i) => {
+          if (i === index) return i - 1;
+          if (i === index - 1) return i + 1;
+          return i;
+        })
+      );
     }
   };
 
@@ -114,6 +158,88 @@ export default function CreateQuizPage() {
         ];
         return newQuestions;
       });
+      // Update selected indices
+      setSelectedQuestions((prev) =>
+        prev.map((i) => {
+          if (i === index) return i + 1;
+          if (i === index + 1) return i - 1;
+          return i;
+        })
+      );
+    }
+  };
+
+  const toggleSelectQuestion = (index: number) => {
+    setSelectedQuestions((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    );
+  };
+
+  const toggleSelectAllQuestions = () => {
+    if (selectedQuestions.length === questions.length) {
+      setSelectedQuestions([]);
+    } else {
+      setSelectedQuestions(questions.map((_, i) => i));
+    }
+  };
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const parsedData: ImportedQuestion[] = JSON.parse(content);
+
+        if (!Array.isArray(parsedData)) {
+          throw new Error("Invalid format: Expected an array of questions");
+        }
+
+        const importedQuestions = parsedData.map((q) => {
+          if (!q.question || !q.options || !q.correct_answer) {
+            throw new Error(
+              "Each question must have 'question', 'options', and 'correct_answer' fields"
+            );
+          }
+
+          // Find the index of the correct answer in options
+          const correctIndex = q.options.findIndex(
+            (opt) => opt === q.correct_answer
+          );
+          if (correctIndex === -1) {
+            throw new Error(
+              `Correct answer "${q.correct_answer}" not found in options`
+            );
+          }
+
+          return {
+            text: q.question,
+            options: q.options,
+            correctAnswer: String.fromCharCode(65 + correctIndex),
+          };
+        });
+
+        setQuestions(importedQuestions);
+        setSelectedQuestions([]);
+        setImportError(null);
+      } catch (error) {
+        console.error("Error parsing JSON:", error);
+        setImportError(
+          error instanceof Error
+            ? error.message
+            : "Invalid JSON format. Please check the file structure."
+        );
+      }
+    };
+    reader.onerror = () => {
+      setImportError("Error reading file");
+    };
+    reader.readAsText(file);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -135,7 +261,7 @@ export default function CreateQuizPage() {
         return false;
       }
 
-      if (question.options.some(option => !option.trim())) {
+      if (question.options.some((option) => !option.trim())) {
         alert(`All options for question ${i + 1} must be filled`);
         return false;
       }
@@ -151,7 +277,7 @@ export default function CreateQuizPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -159,35 +285,39 @@ export default function CreateQuizPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/admin/quizzes', {
-        method: 'POST',
+      const response = await fetch("/api/admin/quizzes", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           quiz: quizData,
-          questions: questions
+          questions: questions,
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to create quiz');
+        throw new Error(error.error || "Failed to create quiz");
       }
 
       const data = await response.json();
       router.push(`/admin/quizzes?success=Quiz+created+successfully`);
     } catch (error) {
       console.error("Error creating quiz:", error);
-      alert(error instanceof Error ? error.message : "Failed to create quiz. Please try again.");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to create quiz. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="p-6  mx-auto">
-      <div className="flex items-center gap-4 mb-6">
+    <div className="p-6 w-full mx-auto">
+      <div className="flex items-center gap-4 mb-2">
         <Link href="/admin/quizzes">
           <Button variant="outline" size="sm">
             <ArrowLeft size={16} />
@@ -199,25 +329,37 @@ export default function CreateQuizPage() {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Quiz Details */}
-        <div className="border rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Quiz Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Title *
-              </label>
+        <div className="border rounded-lg p-4 bg-white shadow-sm">
+          <h2 className="text-lg font-semibold mb-3">Quiz Details</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Title */}
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">Title *</label>
               <Input
                 name="title"
                 value={quizData.title}
                 onChange={handleQuizChange}
-                placeholder="Enter quiz title"
+                placeholder="Quiz title"
                 required
+                className="h-9"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Time Limit (minutes)
-              </label>
+
+            {/* Time Limit */}
+
+            {/* Description */}
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">Description</label>
+              <Input
+                name="description"
+                value={quizData.description}
+                onChange={handleQuizChange}
+                placeholder="Short description"
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">Time (min)</label>
               <Input
                 name="timeLimit"
                 type="number"
@@ -225,22 +367,13 @@ export default function CreateQuizPage() {
                 onChange={handleQuizChange}
                 min="1"
                 max="180"
+                className="h-9"
               />
             </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2">
-                Description
-              </label>
-              <Textarea
-                name="description"
-                value={quizData.description}
-                onChange={handleQuizChange}
-                placeholder="Enter quiz description"
-                rows={3}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">
+
+            {/* Second row with remaining fields */}
+            <div className="md:col-span-1 space-y-1">
+              <label className="block text-sm font-medium">
                 Passing Score (%)
               </label>
               <Input
@@ -250,9 +383,12 @@ export default function CreateQuizPage() {
                 onChange={handleQuizChange}
                 min="1"
                 max="100"
+                className="h-9"
               />
             </div>
-            <div className="flex items-center space-x-2">
+
+            {/* Active checkbox aligned properly */}
+            <div className="flex items-end space-x-2 md:col-span-2">
               <Checkbox
                 id="isActive"
                 checked={quizData.isActive}
@@ -267,113 +403,227 @@ export default function CreateQuizPage() {
           </div>
         </div>
 
-        {/* Questions */}
-        <div className="border rounded-lg p-6">
+        {/* Questions Section */}
+        <div className="border rounded-lg p-6 bg-white shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Questions</h2>
-            <Button type="button" onClick={addQuestion} variant="outline">
-              <Plus size={16} className="mr-2" />
-              Add Question
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Upload size={16} />
+                Import
+              </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileImport}
+                accept=".json"
+                className="hidden"
+              />
+              <Button
+                type="button"
+                onClick={addQuestion}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Plus size={16} />
+                Add
+              </Button>
+            </div>
           </div>
 
-          <div className="space-y-6">
-            {questions.map((question, questionIndex) => (
-              <div key={questionIndex} className="border rounded-lg p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-medium">Question {questionIndex + 1}</h3>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => moveQuestionUp(questionIndex)}
-                      disabled={questionIndex === 0}
-                    >
-                      <ChevronUp size={16} />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => moveQuestionDown(questionIndex)}
-                      disabled={questionIndex === questions.length - 1}
-                    >
-                      <ChevronDown size={16} />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeQuestion(questionIndex)}
-                      disabled={questions.length === 1}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
+          {importError && (
+            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md flex justify-between items-center text-sm">
+              <span>{importError}</span>
+              <button onClick={() => setImportError(null)}>
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Bulk Actions */}
+          {selectedQuestions.length > 0 && (
+            <div className="mb-4 p-2 bg-blue-50 rounded-md flex justify-between items-center text-sm">
+              <div className="text-blue-700">
+                {selectedQuestions.length} selected
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={removeSelectedQuestions}
+                className="gap-2 h-8"
+              >
+                <Trash2 size={16} />
+                Delete
+              </Button>
+            </div>
+          )}
+
+          {/* Horizontal Scrollable Table */}
+          <div className="overflow-x-auto">
+            <div className="min-w-[800px]">
+              {" "}
+              {/* Minimum width to ensure all columns are visible */}
+              <div className="grid grid-cols-12 gap-2 items-center py-2 px-3 bg-gray-50 border-b font-medium text-sm">
+                <div className="col-span-1">
+                  <Checkbox
+                    checked={
+                      selectedQuestions.length === questions.length &&
+                      questions.length > 0
+                    }
+                    onCheckedChange={toggleSelectAllQuestions}
+                    disabled={questions.length === 0}
+                  />
                 </div>
+                <div className="col-span-1">#</div>
+                <div className="col-span-4">Question</div>
+                <div className="col-span-4">Options</div>
+                <div className="col-span-1">Correct</div>
+                <div className="col-span-1">Actions</div>
+              </div>
+              {questions.length > 0 ? (
+                questions.map((question, questionIndex) => (
+                  <div
+                    key={questionIndex}
+                    className="grid grid-cols-12 gap-2 items-center py-3 px-3 border-b hover:bg-gray-50"
+                  >
+                    {/* Checkbox */}
+                    <div className="col-span-1">
+                      <Checkbox
+                        checked={selectedQuestions.includes(questionIndex)}
+                        onCheckedChange={() =>
+                          toggleSelectQuestion(questionIndex)
+                        }
+                      />
+                    </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Question Text *
-                    </label>
-                    <Textarea
-                      value={question.text}
-                      onChange={(e) =>
-                        handleQuestionChange(questionIndex, "text", e.target.value)
-                      }
-                      placeholder="Enter question text"
-                      required
-                    />
-                  </div>
+                    {/* Question Number */}
+                    <div className="col-span-1 text-sm">
+                      {questionIndex + 1}
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Options *
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {question.options.map((option, optionIndex) => (
-                        <div key={optionIndex} className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
-                            {String.fromCharCode(65 + optionIndex)}:
-                          </span>
-                          <Input
-                            value={option}
-                            onChange={(e) =>
-                              handleOptionChange(questionIndex, optionIndex, e.target.value)
-                            }
-                            placeholder={`Option ${String.fromCharCode(65 + optionIndex)}`}
-                            required
-                          />
-                        </div>
-                      ))}
+                    {/* Question Text */}
+                    <div className="col-span-4">
+                      <Input
+                        value={question.text}
+                        onChange={(e) =>
+                          handleQuestionChange(
+                            questionIndex,
+                            "text",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Question text"
+                        required
+                        className="w-full h-8 text-sm"
+                      />
+                    </div>
+
+                    {/* Options */}
+                    <div className="col-span-4">
+                      <div className="grid grid-cols-2 gap-2">
+                        {question.options.map((option, optionIndex) => (
+                          <div
+                            key={optionIndex}
+                            className="flex items-center gap-1"
+                          >
+                            <span className="text-xs font-medium w-4">
+                              {String.fromCharCode(65 + optionIndex)}:
+                            </span>
+                            <Input
+                              value={option}
+                              onChange={(e) =>
+                                handleOptionChange(
+                                  questionIndex,
+                                  optionIndex,
+                                  e.target.value
+                                )
+                              }
+                              placeholder={`Option ${String.fromCharCode(
+                                65 + optionIndex
+                              )}`}
+                              required
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Correct Answer */}
+                    <div className="col-span-1">
+                      <select
+                        value={question.correctAnswer}
+                        onChange={(e) =>
+                          handleQuestionChange(
+                            questionIndex,
+                            "correctAnswer",
+                            e.target.value
+                          )
+                        }
+                        className="w-full p-1 border rounded text-xs h-8"
+                        required
+                      >
+                        <option value="">Select</option>
+                        {question.options.map((_, optionIndex) => (
+                          <option
+                            key={optionIndex}
+                            value={String.fromCharCode(65 + optionIndex)}
+                          >
+                            {String.fromCharCode(65 + optionIndex)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="col-span-1 flex gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => moveQuestionUp(questionIndex)}
+                        disabled={questionIndex === 0}
+                        className="h-7 w-7"
+                      >
+                        <ChevronUp size={14} />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => moveQuestionDown(questionIndex)}
+                        disabled={questionIndex === questions.length - 1}
+                        className="h-7 w-7"
+                      >
+                        <ChevronDown size={14} />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeQuestion(questionIndex)}
+                        disabled={questions.length === 1}
+                        className="h-7 w-7 text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
                     </div>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Correct Answer *
-                    </label>
-                    <select
-                      value={question.correctAnswer}
-                      onChange={(e) =>
-                        handleQuestionChange(questionIndex, "correctAnswer", e.target.value)
-                      }
-                      className="w-full p-2 border rounded-md"
-                      required
-                    >
-                      <option value="">Select correct answer</option>
-                      {question.options.map((_, optionIndex) => (
-                        <option key={optionIndex} value={String.fromCharCode(65 + optionIndex)}>
-                          {String.fromCharCode(65 + optionIndex)}: {question.options[optionIndex]}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                ))
+              ) : (
+                <div className="col-span-12 py-8 text-center text-gray-500 text-sm">
+                  No questions added yet
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
         </div>
 
@@ -385,7 +635,31 @@ export default function CreateQuizPage() {
             </Button>
           </Link>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Quiz"}
+            {isSubmitting ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Creating...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Check size={16} />
+                Create Quiz
+              </span>
+            )}
           </Button>
         </div>
       </form>
