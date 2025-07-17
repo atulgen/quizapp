@@ -8,6 +8,13 @@
       "when": 1752670103079,
       "tag": "0000_sour_sunfire",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1752689376513,
+      "tag": "0001_light_kabuki",
+      "breakpoints": true
     }
   ]
 }
