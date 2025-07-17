@@ -20,7 +20,7 @@ export default function Home() {
       <div className="max-w-md w-full">
         <div className="bg-white rounded-lg shadow-sm p-6 md:p-8">
           <Image
-            src="/Gennextlogoxdarkblue.png"
+            src="/Gennextlogoxdarkblue.jpg"
             alt="Quiz Image"
             width={200}
             height={200}
