@@ -7,6 +7,11 @@ export default function CompletionPage() {
   const router = useRouter();
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes in seconds
 
+  const handleNavigation = () => {
+    localStorage.removeItem('quizStudent');
+    router.push('/');
+  };
+
   useEffect(() => {
     // Check if quiz was completed
     const student = localStorage.getItem('quizStudent');
@@ -20,8 +25,7 @@ export default function CompletionPage() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          localStorage.removeItem('quizStudent'); // Remove here before redirect
-          router.push('/');
+          handleNavigation(); // Use the same cleanup function
           return 0;
         }
         return prev - 1;
@@ -62,12 +66,12 @@ export default function CompletionPage() {
           You will be automatically redirected in {timeLeft} seconds
         </p>
         
-        <Link
-          href="/"
+        <button
+          onClick={handleNavigation}
           className="inline-block px-6 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
         >
           Return to Home
-        </Link>
+        </button>
       </div>
     </div>
   );
