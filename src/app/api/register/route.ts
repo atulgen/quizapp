@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     if (!existingStudent) {
       const [newStudent] = await db
         .insert(students)
-        .values({ name, email })
+        .values({ name, email ,phone })
         .returning();
       student = newStudent;
     } else {
