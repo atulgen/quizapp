@@ -19,6 +19,8 @@ export default function QuizPage() {
   } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [student, setStudent] = useState<{id: number, name: string} | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
@@ -55,27 +57,42 @@ export default function QuizPage() {
       router.push("/register");
       return;
     }
-    setStudent(JSON.parse(studentData));
+    
+    const parsedStudent = JSON.parse(studentData);
+    setStudent(parsedStudent);
 
     const fetchQuiz = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+        
         const response = await fetch("/api/quiz");
-        if (!response.ok) throw new Error("Quiz not available");
+        if (!response.ok) {
+          throw new Error("Quiz not available");
+        }
         
         const data = await response.json();
-        if (!data.quiz) throw new Error("No active quiz found");
-        if (data.quiz.timeLimit <= 0) throw new Error("Invalid time limit");
+        if (!data.quiz) {
+          throw new Error("No active quiz found");
+        }
+        if (data.quiz.timeLimit <= 0) {
+          throw new Error("Invalid time limit");
+        }
         
         // Check for existing attempts
         const attemptCheck = await fetch(
-          `/api/attempts?studentId=${JSON.parse(studentData).id}&quizId=${data.quiz.id}`
+          `/api/attempts?studentId=${parsedStudent.id}&quizId=${data.quiz.id}`
         );
         
         if (attemptCheck.ok) {
           const existingAttempts = await attemptCheck.json();
           if (existingAttempts.length > 0) {
-            alert('You have already attempted this quiz.');
-            router.push('/');
+            setError('You have already attempted this quiz.');
+            setIsLoading(false);
+            // Redirect after showing error message
+            setTimeout(() => {
+              router.push('/');
+            }, 3000);
             return;
           }
         }
@@ -115,9 +132,15 @@ export default function QuizPage() {
         }
         
         setStartTime(Date.now());
+        setIsLoading(false);
       } catch (error) {
         console.error("Quiz load error:", error);
-        router.push("/?error=quiz_not_available");
+        setError(error instanceof Error ? error.message : "Failed to load quiz. Please try again.");
+        setIsLoading(false);
+        // Redirect after showing error message
+        setTimeout(() => {
+          router.push("/?error=quiz_not_available");
+        }, 3000);
       }
     };
 
@@ -219,7 +242,6 @@ export default function QuizPage() {
       localStorage.removeItem(`quiz_${quizData.quiz.id}_answers`);
       localStorage.removeItem(`quiz_${quizData.quiz.id}_time`);
       
-      
       // Prevent going back
       window.history.pushState(null, '', '/completion');
       router.push("/completion");
@@ -243,12 +265,60 @@ export default function QuizPage() {
     }
   };
 
-  if (!quizData || !student) {
+  // Show loading state
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-800 mx-auto mb-4"></div>
-          <p>Loading quiz...</p>
+          <p className="text-gray-600">Loading quiz...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
+          <div className="text-red-500 mb-4">
+            <svg className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 15.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Quiz Unavailable</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-sm text-gray-500">You will be redirected shortly...</p>
+          <button
+            onClick={() => router.push('/')}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            Go Back Now
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // If no quiz data and not loading or error, something went wrong
+  if (!quizData || !student) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
+          <div className="text-red-500 mb-4">
+            <svg className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 15.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Quiz Data Error</h2>
+          <p className="text-gray-600 mb-4">Failed to load quiz data.</p>
+          <button
+            onClick={() => router.push('/')}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            Go Back
+          </button>
         </div>
       </div>
     );
