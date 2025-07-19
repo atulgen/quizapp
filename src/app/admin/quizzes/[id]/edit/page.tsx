@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Save, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Save, Trash2, ChevronDown, ChevronUp, Plus } from "lucide-react";
 
 interface Quiz {
   id: number;
@@ -61,7 +61,6 @@ export default function EditQuizPage() {
 
       const data = await response.json();
 
-      // Update quiz data
       setQuizData({
         id: data.quiz.id,
         title: data.quiz.title,
@@ -71,11 +70,10 @@ export default function EditQuizPage() {
         isActive: data.quiz.isActive,
       });
 
-      // Update questions data
       setQuestions(
         data.questions.map((q: any) => ({
           text: q.text,
-          options: q.options, // This should already be parsed from the API
+          options: q.options,
           correctAnswer: q.correctAnswer,
         }))
       );
@@ -171,10 +169,6 @@ export default function EditQuizPage() {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // In a real app, you would submit to your API endpoint
       const response = await fetch(`/api/admin/quizzes/${id}`, {
         method: "PUT",
         headers: {
@@ -188,7 +182,6 @@ export default function EditQuizPage() {
 
       if (!response.ok) throw new Error("Failed to update quiz");
 
-      // Redirect to quiz detail with success message
       router.push(`/admin/quizzes/${id}?success=Quiz+updated+successfully`);
     } catch (error) {
       console.error("Error updating quiz:", error);
@@ -207,254 +200,253 @@ export default function EditQuizPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center gap-4 mb-6">
         <Link href={`/admin/quizzes/${id}`}>
-          <Button variant="outline" size="icon" className="border-black">
+          <Button variant="outline" size="icon" className="border-gray-300">
             <ArrowLeft className="w-4 h-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold text-black">Edit Quiz</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Edit Quiz</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="grid grid-cols-1 gap-6">
-          {/* Quiz Details */}
-          <div className="border-2 border-black p-6 rounded-lg space-y-6">
-            <h2 className="text-xl font-semibold">Quiz Details</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="title" className="block font-medium">
-                  Quiz Title <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="title"
-                  name="title"
-                  value={quizData.title}
-                  onChange={handleQuizChange}
-                  placeholder="Enter quiz title"
-                  className="border-2 border-black"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="timeLimit" className="block font-medium">
-                  Time Limit (minutes)
-                </label>
-                <Input
-                  type="number"
-                  id="timeLimit"
-                  name="timeLimit"
-                  value={quizData.timeLimit}
-                  onChange={handleQuizChange}
-                  min="1"
-                  className="border-2 border-black"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="description" className="block font-medium">
-                Description
+        {/* Quiz Details Card */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-semibold mb-6 text-gray-800">Quiz Details</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                Quiz Title <span className="text-red-500">*</span>
               </label>
-              <Textarea
-                id="description"
-                name="description"
-                value={quizData.description}
+              <Input
+                id="title"
+                name="title"
+                value={quizData.title}
                 onChange={handleQuizChange}
-                placeholder="Enter quiz description"
-                className="border-2 border-black min-h-[100px]"
+                placeholder="Enter quiz title"
+                className="w-full"
+                required
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="passingScore" className="block font-medium">
-                  Passing Score (%)
-                </label>
-                <Input
-                  type="number"
-                  id="passingScore"
-                  name="passingScore"
-                  value={quizData.passingScore}
-                  onChange={handleQuizChange}
-                  min="1"
-                  max="100"
-                  className="border-2 border-black"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2 pt-6">
-                <Checkbox
-                  id="isActive"
-                  checked={quizData.isActive}
-                  onCheckedChange={(checked) =>
-                    setQuizData((prev) => ({
-                      ...prev,
-                      isActive: Boolean(checked),
-                    }))
-                  }
-                  className="border-2 border-black data-[state=checked]:bg-black"
-                />
-                <label htmlFor="isActive" className="font-medium">
-                  Active Quiz
-                </label>
-              </div>
+            <div>
+              <label htmlFor="timeLimit" className="block text-sm font-medium text-gray-700 mb-1">
+                Time Limit (minutes)
+              </label>
+              <Input
+                type="number"
+                id="timeLimit"
+                name="timeLimit"
+                value={quizData.timeLimit}
+                onChange={handleQuizChange}
+                min="1"
+                className="w-full"
+              />
             </div>
           </div>
 
-          {/* Questions */}
-          <div className="border-2 border-black p-6 rounded-lg space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Questions</h2>
-              <Button
-                type="button"
-                onClick={addQuestion}
-                className="bg-black hover:bg-gray-800 text-white border-2 border-black"
-              >
-                Add Question
-              </Button>
+          <div className="mb-6">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <Textarea
+              id="description"
+              name="description"
+              value={quizData.description}
+              onChange={handleQuizChange}
+              placeholder="Enter quiz description"
+              className="w-full min-h-[100px]"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="passingScore" className="block text-sm font-medium text-gray-700 mb-1">
+                Passing Score (%)
+              </label>
+              <Input
+                type="number"
+                id="passingScore"
+                name="passingScore"
+                value={quizData.passingScore}
+                onChange={handleQuizChange}
+                min="1"
+                max="100"
+                className="w-full"
+              />
             </div>
 
-            {questions.map((question, qIndex) => (
-              <div
-                key={qIndex}
-                className="border-2 border-gray-200 p-4 rounded-lg space-y-4"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 space-y-4">
-                    <div className="space-y-2">
-                      <label
-                        htmlFor={`question-${qIndex}`}
-                        className="block font-medium"
-                      >
-                        Question {qIndex + 1}{" "}
-                        <span className="text-red-500">*</span>
-                      </label>
+            <div className="flex items-center space-x-2 pt-6">
+              <Checkbox
+                id="isActive"
+                checked={quizData.isActive}
+                onCheckedChange={(checked) =>
+                  setQuizData((prev) => ({
+                    ...prev,
+                    isActive: Boolean(checked),
+                  }))
+                }
+              />
+              <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
+                Active Quiz
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Questions Section */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-800">Questions</h2>
+            <Button
+              type="button"
+              onClick={addQuestion}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Question
+            </Button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Question
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Options
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Correct Answer
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {questions.map((question, qIndex) => (
+                  <tr key={qIndex}>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <Input
-                        id={`question-${qIndex}`}
                         value={question.text}
                         onChange={(e) =>
                           handleQuestionChange(qIndex, "text", e.target.value)
                         }
                         placeholder="Enter question text"
-                        className="border-2 border-black"
+                        className="w-full"
                         required
                       />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {question.options.map((option, oIndex) => (
-                        <div key={oIndex} className="space-y-2">
-                          <label
-                            htmlFor={`option-${qIndex}-${oIndex}`}
-                            className="block font-medium"
-                          >
-                            Option {String.fromCharCode(65 + oIndex)}{" "}
-                            <span className="text-red-500">*</span>
-                          </label>
-                          <div className="flex items-center space-x-2">
-                            <Input
-                              id={`option-${qIndex}-${oIndex}`}
-                              value={option}
-                              onChange={(e) =>
-                                handleOptionChange(
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="grid grid-cols-2 gap-2">
+                        {question.options.map((option, oIndex) => (
+                          <Input
+                            key={oIndex}
+                            value={option}
+                            onChange={(e) =>
+                              handleOptionChange(
+                                qIndex,
+                                oIndex,
+                                e.target.value
+                              )
+                            }
+                            placeholder={`Option ${String.fromCharCode(65 + oIndex)}`}
+                            className="w-full"
+                            required
+                          />
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col space-y-2">
+                        {question.options.map((_, oIndex) => (
+                          <div key={oIndex} className="flex items-center">
+                            <input
+                              type="radio"
+                              id={`correct-${qIndex}-${oIndex}`}
+                              name={`correctAnswer-${qIndex}`}
+                              value={String.fromCharCode(65 + oIndex)}
+                              checked={
+                                question.correctAnswer ===
+                                String.fromCharCode(65 + oIndex)
+                              }
+                              onChange={() =>
+                                handleQuestionChange(
                                   qIndex,
-                                  oIndex,
-                                  e.target.value
+                                  "correctAnswer",
+                                  String.fromCharCode(65 + oIndex)
                                 )
                               }
-                              placeholder={`Enter option ${String.fromCharCode(
-                                65 + oIndex
-                              )}`}
-                              className="border-2 border-black"
-                              required
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                             />
-                            <div className="flex items-center space-x-1">
-                              <input
-                                type="radio"
-                                id={`correct-${qIndex}-${oIndex}`}
-                                name={`correctAnswer-${qIndex}`}
-                                value={String.fromCharCode(65 + oIndex)}
-                                checked={
-                                  question.correctAnswer ===
-                                  String.fromCharCode(65 + oIndex)
-                                }
-                                onChange={() =>
-                                  handleQuestionChange(
-                                    qIndex,
-                                    "correctAnswer",
-                                    String.fromCharCode(65 + oIndex)
-                                  )
-                                }
-                                className="h-4 w-4 border-2 border-black"
-                              />
-                              <label
-                                htmlFor={`correct-${qIndex}-${oIndex}`}
-                                className="text-sm"
-                              >
-                                Correct
-                              </label>
-                            </div>
+                            <label htmlFor={`correct-${qIndex}-${oIndex}`} className="ml-2 block text-sm text-gray-700">
+                              {String.fromCharCode(65 + oIndex)}
+                            </label>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-center ml-4 space-y-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="border-black"
-                      onClick={() => moveQuestionUp(qIndex)}
-                      disabled={qIndex === 0}
-                    >
-                      <ChevronUp className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="border-black"
-                      onClick={() => moveQuestionDown(qIndex)}
-                      disabled={qIndex === questions.length - 1}
-                    >
-                      <ChevronDown className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                      onClick={() => removeQuestion(qIndex)}
-                      disabled={questions.length <= 1}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => moveQuestionUp(qIndex)}
+                          disabled={qIndex === 0}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => moveQuestionDown(qIndex)}
+                          disabled={qIndex === questions.length - 1}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeQuestion(qIndex)}
+                          disabled={questions.length <= 1}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
+        {/* Form Actions */}
         <div className="flex justify-end gap-4">
           <Link href={`/admin/quizzes/${id}`}>
             <Button
               type="button"
               variant="outline"
-              className="border-black hover:bg-gray-100"
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </Button>
           </Link>
           <Button
             type="submit"
-            className="bg-black hover:bg-gray-800 text-white border-2 border-black"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
             disabled={isSubmitting}
           >
             <Save className="w-4 h-4 mr-2" />

@@ -8,8 +8,6 @@ export default function CompletionPage() {
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes in seconds
 
   const handleNavigation = () => {
-    // Clear all quiz-related data
-    localStorage.removeItem('quizStudent');
     // Prevent going back to quiz
     window.history.pushState(null, '', '/');
     router.push('/');
