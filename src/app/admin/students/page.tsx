@@ -11,6 +11,11 @@ import {
   Search,
   X,
   XCircle,
+  Calendar,
+  DollarSign,
+  Briefcase,
+  GraduationCap,
+  Percent,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -31,55 +36,116 @@ interface Attempt {
   completedAt: string;
 }
 
+interface Quiz {
+  id: number;
+  title: string;
+  description: string;
+  isActive: boolean;
+}
+
+interface DocumentConfig {
+  joiningDate: string;
+  timePeriod: string;
+  issueDate: string;
+  endDate: string;
+  stipend: string;
+  designation: string;
+}
+
 type FilterType = "all" | "passed" | "failed" | "no-attempts";
+type ScoreFilterType = "all" | "50" | "75" | "90";
 type DocType = "pdf" | "word";
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [selectedQuizId, setSelectedQuizId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<FilterType>("all");
+  const [scoreFilter, setScoreFilter] = useState<ScoreFilterType>("all");
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
   const [showDocPanel, setShowDocPanel] = useState(false);
+  const [showConfigPanel, setShowConfigPanel] = useState(false);
   const [generatingDocs, setGeneratingDocs] = useState(false);
   const [docType, setDocType] = useState<DocType>("pdf");
+  const [documentConfig, setDocumentConfig] = useState<DocumentConfig>({
+    joiningDate: "2025-07-22",
+    timePeriod: "2 months",
+    issueDate: new Date().toISOString().split("T")[0],
+    endDate: "2025-09-21",
+    stipend: "2000",
+    designation: "FullStack Intern",
+  });
 
   useEffect(() => {
-    fetchStudents();
+    fetchInitialData();
   }, []);
 
-  const fetchStudents = async () => {
+  useEffect(() => {
+    if (selectedQuizId === null) {
+      setStudents(allStudents);
+    } else {
+      const filteredByQuiz = allStudents.filter((student) =>
+        student.attempts.some((attempt) => attempt.quizId === selectedQuizId)
+      );
+      setStudents(filteredByQuiz);
+    }
+    setSelectedEmails([]);
+  }, [selectedQuizId, allStudents]);
+
+  const fetchInitialData = async () => {
     try {
-      const response = await fetch("/api/admin/students");
-      if (response.ok) {
-        const data = await response.json();
-        setStudents(data.students);
+      const [studentsResponse, quizzesResponse] = await Promise.all([
+        fetch("/api/admin/students"),
+        fetch("/api/admin/quizzes"),
+      ]);
+
+      if (studentsResponse.ok) {
+        const studentsData = await studentsResponse.json();
+        setAllStudents(studentsData.students);
+        setStudents(studentsData.students);
+      }
+
+      if (quizzesResponse.ok) {
+        const quizzesData = await quizzesResponse.json();
+        setQuizzes(quizzesData.quizzes || []);
       }
     } catch (error) {
-      console.error("Failed to fetch students:", error);
+      console.error("Failed to fetch initial data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Calculate best score for each student
   const getStudentBestScore = (student: Student) => {
     if (student.attempts.length === 0) return null;
-    return Math.max(...student.attempts.map((attempt) => attempt.score));
+    const relevantAttempts = selectedQuizId
+      ? student.attempts.filter((attempt) => attempt.quizId === selectedQuizId)
+      : student.attempts;
+
+    if (relevantAttempts.length === 0) return null;
+    return Math.max(...relevantAttempts.map((attempt) => attempt.score));
   };
 
-  // Check if student has passed any quiz
   const hasStudentPassed = (student: Student) => {
-    return student.attempts.some((attempt) => attempt.passed);
+    const relevantAttempts = selectedQuizId
+      ? student.attempts.filter((attempt) => attempt.quizId === selectedQuizId)
+      : student.attempts;
+
+    return relevantAttempts.some((attempt) => attempt.passed);
   };
 
-  // Get student status
   const getStudentStatus = (student: Student) => {
-    if (student.attempts.length === 0) return "No Attempts";
-    return hasStudentPassed(student) ? "Pass" : "Fail";
+    const relevantAttempts = selectedQuizId
+      ? student.attempts.filter((attempt) => attempt.quizId === selectedQuizId)
+      : student.attempts;
+
+    if (relevantAttempts.length === 0) return "No Attempts";
+    return relevantAttempts.some((attempt) => attempt.passed) ? "Pass" : "Fail";
   };
 
-  // Filter and search students
   const filteredStudents = useMemo(() => {
     let filtered = students;
 
@@ -96,25 +162,56 @@ export default function StudentsPage() {
     // Apply status filter
     if (filterType !== "all") {
       filtered = filtered.filter((student) => {
+        const relevantAttempts = selectedQuizId
+          ? student.attempts.filter(
+              (attempt) => attempt.quizId === selectedQuizId
+            )
+          : student.attempts;
+
         switch (filterType) {
           case "passed":
-            return hasStudentPassed(student);
+            return relevantAttempts.some((attempt) => attempt.passed);
           case "failed":
-            return student.attempts.length > 0 && !hasStudentPassed(student);
+            return (
+              relevantAttempts.length > 0 &&
+              !relevantAttempts.some((attempt) => attempt.passed)
+            );
           case "no-attempts":
-            return student.attempts.length === 0;
+            return relevantAttempts.length === 0;
           default:
             return true;
         }
       });
     }
 
-    return filtered;
-  }, [students, searchTerm, filterType]);
+    // Apply score filter
+    if (scoreFilter !== "all") {
+      filtered = filtered.filter((student) => {
+        const bestScore = getStudentBestScore(student);
+        if (bestScore === null) return false;
 
-  // CSV Export function
+        const threshold = parseInt(scoreFilter);
+        return bestScore >= threshold;
+      });
+    }
+
+    return filtered;
+  }, [students, searchTerm, filterType, scoreFilter, selectedQuizId]);
+
   const exportToCSV = () => {
-    const headers = ["S.No", "Name", "Email", "Phone", "Best Score", "Status"];
+    const selectedQuizTitle = selectedQuizId
+      ? quizzes.find((q) => q.id === selectedQuizId)?.title || "Unknown Quiz"
+      : "All Quizzes";
+
+    const headers = [
+      "S.No",
+      "Name",
+      "Email",
+      "Phone",
+      "Best Score",
+      "Status",
+      "Quiz",
+    ];
     const csvContent = [
       headers.join(","),
       ...filteredStudents.map((student, index) => {
@@ -128,6 +225,7 @@ export default function StudentsPage() {
           `"${student.phone || "N/A"}"`,
           bestScore !== null ? `${bestScore}%` : "N/A",
           status,
+          `"${selectedQuizTitle}"`,
         ].join(",");
       }),
     ].join("\n");
@@ -138,7 +236,9 @@ export default function StudentsPage() {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `students_${new Date().toISOString().split("T")[0]}.csv`
+      `students_${selectedQuizTitle.replace(/[^a-zA-Z0-9]/g, "_")}_${
+        new Date().toISOString().split("T")[0]
+      }.csv`
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -146,7 +246,6 @@ export default function StudentsPage() {
     document.body.removeChild(link);
   };
 
-  // Email selection functions
   const toggleEmailSelection = (email: string) => {
     setSelectedEmails((prev) =>
       prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]
@@ -162,8 +261,8 @@ export default function StudentsPage() {
     setSelectedEmails([]);
   };
 
-  // Format date helper
-  const formatDate = (date: Date) => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
     const options: Intl.DateTimeFormatOptions = {
       day: "2-digit",
       month: "short",
@@ -172,192 +271,235 @@ export default function StudentsPage() {
     return date.toLocaleDateString("en-GB", options);
   };
 
-  // Generate offer letter content
   const generateOfferLetterContent = (
     student: Student,
-    issueDate: string,
-    startDate: string,
-    endDate: string
+    config: DocumentConfig
   ) => {
+    const formattedIssueDate = formatDate(config.issueDate);
+    const formattedJoiningDate = formatDate(config.joiningDate);
+    const formattedEndDate = formatDate(config.endDate);
+
     return `
-      <div style="font-family: 'Times New Roman', serif; line-height: 1.6; max-width: 8.5in; margin: 0 auto;  color: #000;">
+      <div style="font-family: 'Times New Roman', serif; line-height: 1.6; max-width: 8.5in; margin: 0 auto; color: #000000; background-color: #ffffff; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
           <img src="https://rxo5hd130p.ufs.sh/f/q5swrPKmNsM9oTaM85w42eRf7hMqdyWPJ1QctavKoT8OLpVY" alt="Company Logo" style="width: 100px; height: auto; margin-bottom: 10px;" />
-          <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">
+          <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #000000;">
             Gennext IT Management And Consulting Pvt Ltd
           </div>
-          <div style="font-size: 12px; margin-bottom: 20px;">
+          <div style="font-size: 12px; margin-bottom: 20px; color: #333333;">
             33B Pocket A, Mayur Vihar, Phase 2<br>
             Delhi 110091
           </div>
         </div>
 
-        <div style="text-align: right; margin-bottom: 20px; font-weight: bold;">
-          ${issueDate}
+        <div style="text-align: right; margin-bottom: 20px; font-weight: bold; color: #000000;">
+          ${formattedIssueDate}
         </div>
 
-        <div style="margin-bottom: 20px;">
+        <div style="margin-bottom: 20px; color: #000000;">
           ${student.name}<br>
-          
-          email: ${student.email}
+          Email: ${student.email}
         </div>
 
-        <div>Dear ${student.name},</div>
+        <div style="color: #000000;">Dear ${student.name},</div>
 
-        <div style="font-weight: bold; margin: 20px 0;">
+        <div style="font-weight: bold; margin: 20px 0; color: #000000;">
           Subject: Internship offer letter
         </div>
 
-        <div style="margin: 15px 0; text-align: justify;">
+        <div style="margin: 15px 0; text-align: justify; color: #000000;">
           We are pleased to extend to you an offer to join Gennext IT Management
           And Consulting Pvt Ltd as an Intern. We are excited about the prospect
           of you joining our team and contributing to our projects.
         </div>
 
-        <ol style="padding-left: 20px;">
-          <li style="margin-bottom: 5px;">Position: FullStack Intern</li>
-          <li style="margin-bottom: 5px;">Monthly Stipend: Rs. 2000</li>
-          <li style="margin-bottom: 5px;">Internship Duration: Initial period of 2 months</li>
+        <ol style="padding-left: 20px; color: #000000;">
+          <li style="margin-bottom: 5px;">Position: ${config.designation}</li>
+          <li style="margin-bottom: 5px;">Monthly Stipend: Rs. ${config.stipend}</li>
+          <li style="margin-bottom: 5px;">Internship Duration: Initial period of ${config.timePeriod}</li>
           <li style="margin-bottom: 5px;">Extension: The internship may be extended based on your performance.</li>
           <li style="margin-bottom: 5px;">Base Location: Noida</li>
         </ol>
 
-        <div style="margin: 20px 0;">
+        <div style="margin: 20px 0; color: #000000;">
           <div style="font-weight: bold; margin-bottom: 10px;">Terms and Conditions of Employment:</div>
           
-          <p><strong>Reporting:</strong> You will report to Atul Raj, Software Engineer</p>
+          <p style="color: #000000;"><strong>Reporting:</strong> You will report to Atul Raj, Software Engineer</p>
           
-          <p><strong>Work Hours:</strong> our regular working hours will be 9:00 AM to 6:00 PM, Monday to 
-        Saturday.</p>
-          <p><strong>Benefits:</strong> As part of this internship you will be provided an
+          <p style="color: #000000;"><strong>Work Hours:</strong> Our regular working hours will be 9:00 AM to 6:00 PM, Monday to Saturday.</p>
+          
+          <p style="color: #000000;"><strong>Benefits:</strong> As part of this internship you will be provided an
           opportunity to improve your basics in full stack development and then
           work on live projects and get exposure to work on industry related
           software challenges and mitigate these through software development.</p>
         </div>
-        <div style="page-break-before: always; margin: 15px 0; text-align: justify; padding-top: 20px;">
+
+        <div style="page-break-before: always; margin: 15px 0; text-align: justify; padding-top: 20px; color: #000000;">
           We look forward to welcoming you to Gennext IT Management And
           Consulting Pvt Ltd.
         </div>
 
-        <div style="margin: 15px 0; text-align: justify;">
-          Your internship starts from <strong>${startDate}</strong> and will
-          continue through to <strong>${endDate}</strong>, post which we will
+        <div style="margin: 15px 0; text-align: justify; color: #000000;">
+          Your internship starts from <strong>${formattedJoiningDate}</strong> and will
+          continue through to <strong>${formattedEndDate}</strong>, post which we will
           evaluate your performance and may offer you either extended paid
           internship or an offer letter based on your performance.
         </div>
 
-        <div style="margin: 15px 0; text-align: justify;">
+        <div style="margin: 15px 0; text-align: justify; color: #000000;">
           The managing committee welcomes you and looks forward to a pleasant
           and long term association with you.
         </div>
 
-        <div style="margin: 15px 0;">Thanking You,</div>
+        <div style="margin: 15px 0; color: #000000;">Thanking You,</div>
 
-        <div style="margin-top: 50px; display: flex; justify-content: space-between;">
+        <div style="margin-top: 50px; display: flex; justify-content: space-between; align-items: end;">
           <div style="text-align: center;">
-            <div>
+            <div style="margin-bottom: 40px;">
               <img src="https://rxo5hd130p.ufs.sh/f/q5swrPKmNsM9uAfht31kJCvqgXFyDsoUNcIdQBThGV8WZY0r" alt="Signature" style="width: 100px; height: auto;" />
             </div>
-            <div>Ruchi Gupta (Director HR)</div>
-            <div>Gennext IT Management And Consulting Pvt Ltd.</div>
+            <div style="color: #000000;">Ruchi Gupta (Director HR)</div>
+            <div style="color: #000000;">Gennext IT Management And Consulting Pvt Ltd.</div>
           </div>
           <div style="text-align: center;">
             <div style="margin-bottom: 50px;"></div>
-            <div>(${student.name})</div>
-            <div>Candidate</div>
+            <div style="color: #000000;">(${student.name})</div>
+            <div style="color: #000000;">Candidate</div>
           </div>
         </div>
       </div>
     `;
   };
 
-  // Generate PDF using browser's print functionality
-  const generatePDF = async (
-    student: Student,
-    issueDate: string,
-    startDate: string,
-    endDate: string
-  ) => {
-    const content = generateOfferLetterContent(
-      student,
-      issueDate,
-      startDate,
-      endDate
-    );
+  const loadLibraries = async () => {
+    if (typeof window !== "undefined") {
+      const promises = [];
 
-    // Create a new window for PDF generation
-    const printWindow = window.open("", "_blank", "width=800,height=600");
-    if (!printWindow) return;
+      if (!(window as any).JSZip) {
+        const jszipPromise = new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src =
+            "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+          script.onload = () => resolve((window as any).JSZip);
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+        promises.push(jszipPromise);
+      }
 
-    // Write content to the new window
-    printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Internship Offer Letter - ${student.name}</title>
-      <style>
-        @media print {
-          body { 
-            margin: 0;
-            padding-top: 10mm; /* Add space at the top */
-          }
-          @page { 
-            margin: 10mm 10mm 10mm 10mm; /* Top margin is larger */
-            size: A4;
-          }
-        }
-        @media screen {
-          body {
-            background-color: #f5f5f5;
-            padding: 20px;
-          }
-          .print-container {
-            background-color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            margin: 0 auto;
-            max-width: 800px;
-            padding: 20px;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="print-container">
-        ${content}
-      </div>
-      <script>
-        // Automatically trigger print when content loads
-        window.onload = function() {
-          setTimeout(function() {
-            window.print();
-            // Close the window after printing
-            setTimeout(function() {
-              window.close();
-            }, 100);
-          }, 200);
-        };
-      </script>
-    </body>
-    </html>
-  `);
-    printWindow.document.close();
+      if (!(window as any).jsPDF) {
+        const jspdfPromise = new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src =
+            "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+          script.onload = () => resolve((window as any).jspdf);
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+        promises.push(jspdfPromise);
+      }
+
+      if (!(window as any).html2canvas) {
+        const html2canvasPromise = new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src =
+            "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+          script.onload = () => resolve((window as any).html2canvas);
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+        promises.push(html2canvasPromise);
+      }
+
+      await Promise.all(promises);
+    }
+
+    return {
+      JSZip: (window as any).JSZip,
+      jsPDF: (window as any).jspdf?.jsPDF,
+      html2canvas: (window as any).html2canvas,
+    };
   };
-  // Generate proper Word document
-  const generateWordDoc = (
-    student: Student,
-    issueDate: string,
-    startDate: string,
-    endDate: string
-  ) => {
-    const content = generateOfferLetterContent(
-      student,
-      issueDate,
-      startDate,
-      endDate
+
+  const sanitizeHtmlForCanvas = (htmlString: string): string => {
+  // Remove any CSS that might use lab() color functions or other unsupported features
+  return htmlString
+    .replace(/color:\s*lab\([^)]*\)/gi, 'color: #000000')
+    .replace(/background-color:\s*lab\([^)]*\)/gi, 'background-color: #ffffff')
+    .replace(/border-color:\s*lab\([^)]*\)/gi, 'border-color: #000000')
+    // Replace any other modern CSS color functions that might not be supported
+    .replace(/color:\s*oklch\([^)]*\)/gi, 'color: #000000')
+    .replace(/color:\s*lch\([^)]*\)/gi, 'color: #000000')
+    .replace(/color:\s*oklab\([^)]*\)/gi, 'color: #000000');
+};
+
+ const generatePDFBlob = async (
+  student: Student,
+  config: DocumentConfig
+): Promise<Blob> => {
+  const { jsPDF, html2canvas } = await loadLibraries();
+
+  if (!jsPDF || !html2canvas) {
+    throw new Error("Failed to load PDF generation libraries");
+  }
+
+  const content = generateOfferLetterContent(student, config);
+  const sanitizedContent = sanitizeHtmlForCanvas(content);
+
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = sanitizedContent;
+  tempDiv.style.position = "absolute";
+  tempDiv.style.left = "-9999px";
+  tempDiv.style.top = "0";
+  tempDiv.style.width = "794px";
+  tempDiv.style.backgroundColor = "#ffffff";
+  tempDiv.style.color = "#000000";
+  document.body.appendChild(tempDiv);
+
+  try {
+    const canvas = await html2canvas(tempDiv, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: "#ffffff",
+      width: 794,
+      windowWidth: 794,
+      logging: false,
+      ignoreElements: (element: Element) => {
+        const tagName = element.tagName.toLowerCase();
+        return tagName === 'script' || tagName === 'noscript';
+      }
+    });
+
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "px",
+      format: [794, 1123],
+    });
+
+    const imgWidth = 794;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    pdf.addImage(
+      canvas.toDataURL("image/png"),
+      "PNG",
+      0,
+      0,
+      imgWidth,
+      imgHeight
     );
 
-    // Create proper Word document structure
+    return new Blob([pdf.output("blob")], { type: "application/pdf" });
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    throw new Error("Failed to generate PDF. Please try again.");
+  } finally {
+    document.body.removeChild(tempDiv);
+  }
+};
+  const generateWordBlob = (student: Student, config: DocumentConfig): Blob => {
+    const content = generateOfferLetterContent(student, config);
+
     const wordDocument = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office"
             xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -365,16 +507,6 @@ export default function StudentsPage() {
       <head>
         <meta charset="utf-8">
         <title>Internship Offer Letter</title>
-        <!--[if gte mso 9]>
-        <xml>
-          <w:WordDocument>
-            <w:View>Print</w:View>
-            <w:Zoom>90</w:Zoom>
-            <w:DoNotPromptForConvert/>
-            <w:DoNotShowInsertionsAndDeletions/>
-          </w:WordDocument>
-        </xml>
-        <![endif]-->
         <style>
           @page {
             size: A4;
@@ -384,6 +516,8 @@ export default function StudentsPage() {
             font-family: 'Times New Roman', serif;
             font-size: 11pt;
             line-height: 1.6;
+            color: #000000;
+            background-color: #ffffff;
           }
         </style>
       </head>
@@ -393,25 +527,73 @@ export default function StudentsPage() {
       </html>
     `;
 
-    const blob = new Blob([wordDocument], {
+    return new Blob([wordDocument], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Internship_Offer_Letter_${student.name.replace(
-      /\s+/g,
-      "_"
-    )}_${issueDate.replace(/\s+/g, "_")}.doc`;
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
-  // Generate documents for selected students
+  const createZipWithDocuments = async (
+  students: Student[],
+  config: DocumentConfig
+) => {
+  try {
+    const { JSZip } = await loadLibraries();
+    if (!JSZip) throw new Error("JSZip library not loaded");
+    
+    const zip = new JSZip();
+
+    for (const student of students) {
+      try {
+        let fileBlob: Blob;
+        let fileName: string;
+
+        if (docType === "pdf") {
+          fileBlob = await generatePDFBlob(student, config);
+          fileName = `Internship_Offer_Letter_${student.name.replace(
+            /[^a-zA-Z0-9]/g,
+            "_"
+          )}.pdf`;
+        } else {
+          fileBlob = generateWordBlob(student, config);
+          fileName = `Internship_Offer_Letter_${student.name.replace(
+            /[^a-zA-Z0-9]/g,
+            "_"
+          )}.doc`;
+        }
+
+        zip.file(fileName, fileBlob);
+      } catch (error) {
+        console.error(`Failed to generate document for ${student.name}:`, error);
+        // Optionally continue with other students or throw error
+        throw error;
+      }
+    }
+
+    const readmeContent = `
+INTERNSHIP OFFER LETTERS - ${config.issueDate}
+
+Generated for ${students.length} student(s)
+
+Configuration:
+- Issue Date: ${formatDate(config.issueDate)}
+- Joining Date: ${formatDate(config.joiningDate)}
+- End Date: ${formatDate(config.endDate)}
+- Duration: ${config.timePeriod}
+- Stipend: Rs. ${config.stipend}
+- Position: ${config.designation}
+
+Generated on: ${new Date().toLocaleString()}
+    `.trim();
+
+    zip.file("README.txt", readmeContent);
+
+    return await zip.generateAsync({ type: "blob" });
+  } catch (error) {
+    console.error("Failed to create ZIP file:", error);
+    throw new Error("Failed to create ZIP file. Please try again.");
+  }
+};
+
   const generateOfferLetterDocs = async () => {
     setGeneratingDocs(true);
 
@@ -420,31 +602,73 @@ export default function StudentsPage() {
         selectedEmails.includes(student.email)
       );
 
-      const issueDate = formatDate(new Date());
-      const startDate = formatDate(new Date("2025-07-22"));
-      const endDate = formatDate(new Date("2025-09-21"));
+      if (selectedStudents.length === 0) {
+        alert("No students selected!");
+        return;
+      }
 
-      for (const student of selectedStudents) {
+      if (selectedStudents.length === 1) {
+        const student = selectedStudents[0];
+        let fileBlob: Blob;
+        let fileName: string;
+
         if (docType === "pdf") {
-          await generatePDF(student, issueDate, startDate, endDate);
-          // Add delay between PDFs to avoid browser blocking
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          fileBlob = await generatePDFBlob(student, documentConfig);
+          fileName = `Internship_Offer_Letter_${student.name.replace(
+            /[^a-zA-Z0-9]/g,
+            "_"
+          )}.pdf`;
         } else {
-          generateWordDoc(student, issueDate, startDate, endDate);
+          fileBlob = generateWordBlob(student, documentConfig);
+          fileName = `Internship_Offer_Letter_${student.name.replace(
+            /[^a-zA-Z0-9]/g,
+            "_"
+          )}.doc`;
         }
+
+        const url = URL.createObjectURL(fileBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        const zipBlob = await createZipWithDocuments(
+          selectedStudents,
+          documentConfig
+        );
+
+        const url = URL.createObjectURL(zipBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `Internship_Offer_Letters_${documentConfig.issueDate}.zip`;
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
       }
 
       alert(
-        `Offer letter documents generated for ${selectedStudents.length} students!`
+        `Offer letter documents generated successfully for ${selectedStudents.length} student(s)!`
       );
       setSelectedEmails([]);
       setShowDocPanel(false);
+      setShowConfigPanel(false);
     } catch (error) {
       console.error("Failed to generate documents:", error);
       alert("Failed to generate documents. Please try again.");
     } finally {
       setGeneratingDocs(false);
     }
+  };
+
+  const handleConfigSubmit = () => {
+    setShowConfigPanel(false);
+    setShowDocPanel(true);
   };
 
   if (loading) {
@@ -456,22 +680,66 @@ export default function StudentsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Student Management</h1>
-        <div className="flex items-center space-x-4">
+    <div className="container mx-auto py-4 px-4 sm:py-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold">Student Management</h1>
+        <div className="flex items-center space-x-2 sm:space-x-4 w-full sm:w-auto">
           <Button
-            onClick={() => setShowDocPanel(true)}
+            onClick={() => setShowConfigPanel(true)}
             variant="outline"
             disabled={selectedEmails.length === 0}
+            className="flex-1 sm:flex-none text-xs sm:text-sm"
           >
-            <FileText className="w-4 h-4 mr-2" />
+            <FileText className="w-4 h-4 mr-1 sm:mr-2" />
             Generate Docs ({selectedEmails.length})
           </Button>
-          <Button onClick={exportToCSV} variant="outline">
-            <Download className="w-4 h-4 mr-2" />
+          <Button
+            onClick={exportToCSV}
+            variant="outline"
+            className="flex-1 sm:flex-none text-xs sm:text-sm"
+          >
+            <Download className="w-4 h-4 mr-1 sm:mr-2" />
             Export CSV
           </Button>
+        </div>
+      </div>
+
+      {/* Quiz Filter */}
+      <div className="bg-white rounded-lg shadow p-4 mb-4">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="flex items-center space-x-2">
+            <GraduationCap className="w-4 h-4 text-gray-400" />
+            <label className="text-sm font-medium text-gray-700">
+              Filter by Quiz:
+            </label>
+          </div>
+          <select
+            value={selectedQuizId || ""}
+            onChange={(e) =>
+              setSelectedQuizId(
+                e.target.value ? parseInt(e.target.value) : null
+              )
+            }
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm flex-1 sm:flex-none min-w-[200px]"
+          >
+            <option value="">All Students (All Quizzes)</option>
+            {quizzes.map((quiz) => (
+              <option key={quiz.id} value={quiz.id}>
+                {quiz.title}
+              </option>
+            ))}
+          </select>
+          {selectedQuizId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedQuizId(null)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-4 h-4" />
+              Clear Filter
+            </Button>
+          )}
         </div>
       </div>
 
@@ -485,7 +753,7 @@ export default function StudentsPage() {
               placeholder="Search by name, email, or phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 text-sm sm:text-base"
             />
           </div>
           <div className="flex items-center space-x-2">
@@ -493,7 +761,7 @@ export default function StudentsPage() {
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as FilterType)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="all">All Students</option>
               <option value="passed">Passed</option>
@@ -501,12 +769,38 @@ export default function StudentsPage() {
               <option value="no-attempts">No Attempts</option>
             </select>
           </div>
+          <div className="flex items-center space-x-2">
+            <Percent className="w-4 h-4 text-gray-400" />
+            <select
+              value={scoreFilter}
+              onChange={(e) => setScoreFilter(e.target.value as ScoreFilterType)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="all">All Scores</option>
+              <option value="50">50% or above</option>
+              <option value="75">75% or above</option>
+              <option value="90">90% or above</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Students Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="grid grid-cols-12 bg-gray-100 p-4 font-medium">
+      {/* Display current filter info */}
+      {selectedQuizId && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-800">
+            <strong>Showing students for quiz:</strong>{" "}
+            {quizzes.find((q) => q.id === selectedQuizId)?.title}
+            <span className="ml-2 text-blue-600">
+              ({filteredStudents.length} students)
+            </span>
+          </p>
+        </div>
+      )}
+
+      {/* Students Table - Desktop */}
+      <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
+        <div className="grid grid-cols-12 bg-gray-100 p-4 font-medium text-sm">
           <div className="col-span-1">
             <input
               type="checkbox"
@@ -532,21 +826,26 @@ export default function StudentsPage() {
 
         {filteredStudents.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            {searchTerm || filterType !== "all"
+            {selectedQuizId
+              ? `No students found for the selected quiz ${
+                  searchTerm || filterType !== "all" || scoreFilter !== "all"
+                    ? "matching your criteria"
+                    : ""
+                }.`
+              : searchTerm || filterType !== "all" || scoreFilter !== "all"
               ? "No students match your search criteria."
               : "No students found."}
           </div>
         ) : (
           filteredStudents.map((student, index) => {
             const bestScore = getStudentBestScore(student);
-            const hasPassed = hasStudentPassed(student);
             const status = getStudentStatus(student);
             const isSelected = selectedEmails.includes(student.email);
 
             return (
               <div
                 key={student.id}
-                className="grid grid-cols-12 p-4 items-center hover:bg-gray-50 border-b border-gray-200"
+                className="grid grid-cols-12 p-4 items-center hover:bg-gray-50 border-b border-gray-200 text-sm"
               >
                 <div className="col-span-1">
                   <input
@@ -556,51 +855,33 @@ export default function StudentsPage() {
                     className="w-4 h-4"
                   />
                 </div>
-                <div className="col-span-1 text-gray-600">{index + 1}</div>
+                <div className="col-span-1">{index + 1}</div>
                 <div className="col-span-3 font-medium">{student.name}</div>
                 <div className="col-span-3 text-gray-600">{student.email}</div>
                 <div className="col-span-2 text-gray-600">
                   {student.phone || "N/A"}
                 </div>
-                <div className="col-span-1">
+                <div className="col-span-1 text-center">
                   {bestScore !== null ? (
                     <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        hasPassed
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
+                      className={`font-medium ${
+                        bestScore >= 70 ? "text-green-600" : "text-red-600"
                       }`}
                     >
-                      {hasPassed ? (
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                      ) : (
-                        <XCircle className="w-3 h-3 mr-1" />
-                      )}
                       {bestScore}%
                     </span>
                   ) : (
-                    <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
-                      No attempts
-                    </span>
+                    <span className="text-gray-400">N/A</span>
                   )}
                 </div>
-                <div className="col-span-1">
-                  <span
-                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      status === "Pass"
-                        ? "bg-green-100 text-green-800"
-                        : status === "Fail"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {status === "Pass" ? (
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                    ) : status === "Fail" ? (
-                      <XCircle className="w-3 h-3 mr-1" />
-                    ) : null}
-                    {status}
-                  </span>
+                <div className="col-span-1 text-center">
+                  {status === "Pass" ? (
+                    <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
+                  ) : status === "Fail" ? (
+                    <XCircle className="w-5 h-5 text-red-600 mx-auto" />
+                  ) : (
+                    <span className="text-gray-400 text-xs">No Attempts</span>
+                  )}
                 </div>
               </div>
             );
@@ -608,97 +889,350 @@ export default function StudentsPage() {
         )}
       </div>
 
+      {/* Students Table - Mobile */}
+      <div className="lg:hidden space-y-4">
+        {filteredStudents.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+            {selectedQuizId
+              ? `No students found for the selected quiz ${
+                  searchTerm || filterType !== "all" || scoreFilter !== "all"
+                    ? "matching your criteria"
+                    : ""
+                }.`
+              : searchTerm || filterType !== "all" || scoreFilter !== "all"
+              ? "No students match your search criteria."
+              : "No students found."}
+          </div>
+        ) : (
+          filteredStudents.map((student, index) => {
+            const bestScore = getStudentBestScore(student);
+            const status = getStudentStatus(student);
+            const isSelected = selectedEmails.includes(student.email);
+
+            return (
+              <div key={student.id} className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleEmailSelection(student.email)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-500">#{index + 1}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {status === "Pass" ? (
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    ) : status === "Fail" ? (
+                      <XCircle className="w-5 h-5 text-red-600" />
+                    ) : (
+                      <span className="text-gray-400 text-xs">No Attempts</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="font-medium text-base">{student.name}</div>
+                  <div className="text-sm text-gray-600">{student.email}</div>
+                  <div className="text-sm text-gray-600">
+                    {student.phone || "N/A"}
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                    <span className="text-sm text-gray-500">Best Score:</span>
+                    {bestScore !== null ? (
+                      <span
+                        className={`font-medium ${
+                          bestScore >= 70 ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {bestScore}%
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">N/A</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Selection Summary */}
+      {selectedEmails.length > 0 && (
+        <div className="fixed bottom-4 left-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg z-50">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">
+              {selectedEmails.length} student
+              {selectedEmails.length !== 1 ? "s" : ""} selected
+            </span>
+            <div className="flex space-x-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={clearEmailSelection}
+                className="bg-white text-blue-600 hover:bg-gray-100"
+              >
+                Clear
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowConfigPanel(true)}
+                className="bg-white text-blue-600 hover:bg-gray-100"
+              >
+                Generate Docs
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Configuration Panel */}
+      {showConfigPanel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">
+                  Document Configuration
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowConfigPanel(false)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    <Calendar className="w-4 h-4 inline mr-1" />
+                    Issue Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={documentConfig.issueDate}
+                    onChange={(e) =>
+                      setDocumentConfig((prev) => ({
+                        ...prev,
+                        issueDate: e.target.value,
+                      }))
+                    }
+                    className="text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    <Calendar className="w-4 h-4 inline mr-1" />
+                    Joining Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={documentConfig.joiningDate}
+                    onChange={(e) =>
+                      setDocumentConfig((prev) => ({
+                        ...prev,
+                        joiningDate: e.target.value,
+                      }))
+                    }
+                    className="text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    <Calendar className="w-4 h-4 inline mr-1" />
+                    End Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={documentConfig.endDate}
+                    onChange={(e) =>
+                      setDocumentConfig((prev) => ({
+                        ...prev,
+                        endDate: e.target.value,
+                      }))
+                    }
+                    className="text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Time Period
+                  </label>
+                  <Input
+                    type="text"
+                    value={documentConfig.timePeriod}
+                    onChange={(e) =>
+                      setDocumentConfig((prev) => ({
+                        ...prev,
+                        timePeriod: e.target.value,
+                      }))
+                    }
+                    placeholder="e.g., 2 months"
+                    className="text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    <DollarSign className="w-4 h-4 inline mr-1" />
+                    Monthly Stipend (Rs.)
+                  </label>
+                  <Input
+                    type="text"
+                    value={documentConfig.stipend}
+                    onChange={(e) =>
+                      setDocumentConfig((prev) => ({
+                        ...prev,
+                        stipend: e.target.value,
+                      }))
+                    }
+                    placeholder="e.g., 2000"
+                    className="text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    <Briefcase className="w-4 h-4 inline mr-1" />
+                    Designation
+                  </label>
+                  <Input
+                    type="text"
+                    value={documentConfig.designation}
+                    onChange={(e) =>
+                      setDocumentConfig((prev) => ({
+                        ...prev,
+                        designation: e.target.value,
+                      }))
+                    }
+                    placeholder="e.g., FullStack Intern"
+                    className="text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Document Format
+                  </label>
+                  <select
+                    value={docType}
+                    onChange={(e) => setDocType(e.target.value as DocType)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="pdf">PDF Format</option>
+                    <option value="word">Word Document</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-6 flex space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfigPanel(false)}
+                  className="flex-1 text-sm"
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleConfigSubmit} className="flex-1 text-sm">
+                  Continue
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Document Generation Panel */}
       {showDocPanel && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">
-                Generate Offer Letter Documents
-              </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDocPanel(false)}
-                disabled={generatingDocs}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">
+                  Generate Offer Letters
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDocPanel(false)}
+                  disabled={generatingDocs}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
 
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">
-                Selected {selectedEmails.length} student(s):
-              </p>
-              <div className="max-h-32 overflow-y-auto bg-gray-50 p-2 rounded border">
-                {selectedEmails.map((email, index) => (
-                  <div key={index} className="text-sm py-1">
-                    {email}
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-medium mb-2">
+                    Selected Students ({selectedEmails.length})
+                  </h3>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {students
+                      .filter((student) =>
+                        selectedEmails.includes(student.email)
+                      )
+                      .map((student) => (
+                        <div key={student.id} className="text-sm text-gray-600">
+                          {student.name} ({student.email})
+                        </div>
+                      ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">Document Type:</p>
-              <div className="flex space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="pdf"
-                    checked={docType === "pdf"}
-                    onChange={(e) => setDocType(e.target.value as DocType)}
-                    className="mr-2"
-                  />
-                  PDF
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="word"
-                    checked={docType === "word"}
-                    onChange={(e) => setDocType(e.target.value as DocType)}
-                    className="mr-2"
-                  />
-                  Word Document
-                </label>
-              </div>
-            </div>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="font-medium mb-2 text-blue-800">
+                    Document Configuration
+                  </h3>
+                  <div className="text-sm text-blue-700 space-y-1">
+                    <div>
+                      Issue Date: {formatDate(documentConfig.issueDate)}
+                    </div>
+                    <div>
+                      Joining Date: {formatDate(documentConfig.joiningDate)}
+                    </div>
+                    <div>End Date: {formatDate(documentConfig.endDate)}</div>
+                    <div>Duration: {documentConfig.timePeriod}</div>
+                    <div>Stipend: Rs. {documentConfig.stipend}</div>
+                    <div>Position: {documentConfig.designation}</div>
+                    <div>Format: {docType.toUpperCase()}</div>
+                  </div>
+                </div>
 
-            <div className="mb-4 p-3 bg-blue-50 rounded border">
-              <p className="text-sm text-blue-800">
-                <strong>Internship Period:</strong>
-                <br />
-                Start Date: 22 Jul 2025
-                <br />
-                End Date: 21 Sept 2025
-              </p>
-            </div>
-
-            <div className="flex justify-end space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowDocPanel(false)}
-                disabled={generatingDocs}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={generateOfferLetterDocs}
-                disabled={generatingDocs}
-              >
-                {generatingDocs ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Generate {docType === "pdf" ? "PDFs" : "Word Docs"}
-                  </>
+                {generatingDocs && (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-sm text-gray-600">
+                      Generating documents... This may take a moment.
+                    </p>
+                  </div>
                 )}
-              </Button>
+              </div>
+
+              <div className="mt-6 flex space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfigPanel(true)}
+                  disabled={generatingDocs}
+                  className="flex-1 text-sm"
+                >
+                  Back to Config
+                </Button>
+                <Button
+                  onClick={generateOfferLetterDocs}
+                  disabled={generatingDocs}
+                  className="flex-1 text-sm"
+                >
+                  {generatingDocs ? "Generating..." : "Generate Documents"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

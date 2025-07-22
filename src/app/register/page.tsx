@@ -213,22 +213,12 @@ export default function RegisterPage() {
                     Registering...
                   </span>
                 ) : (
-                  "Create Account"
+                  "Login in"
                 )}
               </button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-gray-500">
-              <p>
-                Already have an account?{" "}
-                <button
-                  onClick={() => router.push("/login")}
-                  className="text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Sign in instead
-                </button>
-              </p>
-            </div>
+          
           </div>
         </div>
       </div>

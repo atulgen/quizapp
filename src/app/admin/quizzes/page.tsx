@@ -71,7 +71,6 @@ export default function QuizzesPage() {
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
-    // Check for success message in URL params
     const success = searchParams.get('success');
     if (success) {
       setSuccessMessage(decodeURIComponent(success));
@@ -151,7 +150,6 @@ export default function QuizzesPage() {
         throw new Error('Failed to delete quiz');
       }
 
-      // Reload quizzes after deletion
       loadQuizzes();
       setSuccessMessage('Quiz deleted successfully');
       setTimeout(() => setSuccessMessage(''), 5000);
@@ -163,12 +161,12 @@ export default function QuizzesPage() {
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1);
   };
 
   const handleStatusFilter = (value: 'all' | 'active' | 'inactive') => {
     setStatusFilter(value);
-    setCurrentPage(1); // Reset to first page when filtering
+    setCurrentPage(1);
   };
 
   const goToPage = (page: number) => {
@@ -178,19 +176,19 @@ export default function QuizzesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Quiz Management</h1>
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <h1 className="text-2xl font-bold text-indigo-600">Quiz Management</h1>
         <Link href="/admin/quizzes/create">
-          <Button className="flex items-center gap-2">
+          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2">
             <Plus size={20} />
-            Create Quiz
+            <span className="hidden sm:inline">Create Quiz</span>
           </Button>
         </Link>
       </div>
@@ -202,7 +200,7 @@ export default function QuizzesPage() {
       )}
 
       {/* Filters */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
           <Input
@@ -213,7 +211,7 @@ export default function QuizzesPage() {
           />
         </div>
         <Select value={statusFilter} onValueChange={handleStatusFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -225,87 +223,94 @@ export default function QuizzesPage() {
       </div>
 
       {/* Quizzes Table */}
-      <div className="border rounded-lg">
-        <Table>
+      <div className="border rounded-lg overflow-x-auto">
+        <Table className="min-w-full">
           <TableHeader>
             <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Questions</TableHead>
-              <TableHead>Time Limit</TableHead>
-              <TableHead>Passing Score</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-indigo-600">Title</TableHead>
+              <TableHead className="hidden md:table-cell text-indigo-600">Description</TableHead>
+              <TableHead className="text-indigo-600">Q's</TableHead>
+              <TableHead className="hidden sm:table-cell text-indigo-600">Time</TableHead>
+              <TableHead className="hidden sm:table-cell text-indigo-600">Passing</TableHead>
+              <TableHead className="text-indigo-600">Status</TableHead>
+              <TableHead className="hidden md:table-cell text-indigo-600">Created</TableHead>
+              <TableHead className="text-right text-indigo-600">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {quizzes.map((quiz) => (
-              <TableRow key={quiz.id}>
-                <TableCell className="font-medium">{quiz.title}</TableCell>
-                <TableCell className="max-w-xs truncate">{quiz.description}</TableCell>
-                <TableCell>{quiz.questionsCount}</TableCell>
-                <TableCell>{quiz.timeLimit} min</TableCell>
-                <TableCell>{quiz.passingScore}%</TableCell>
-                <TableCell>
-                  <span
-                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      quiz.isActive
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {quiz.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </TableCell>
-                <TableCell>{formatDate(quiz.createdAt)}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Link href={`/admin/quizzes/${quiz.id}`}>
-                      <Button variant="outline" size="sm">
-                        <Eye size={16} />
-                      </Button>
-                    </Link>
-                    <Link href={`/admin/quizzes/${quiz.id}/edit`}>
-                      <Button variant="outline" size="sm">
-                        <Edit size={16} />
-                      </Button>
-                    </Link>
-                    {/* <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleQuizStatus(quiz.id)}
+            {quizzes.length > 0 ? (
+              quizzes.map((quiz) => (
+                <TableRow key={quiz.id}>
+                  <TableCell className="font-medium text-indigo-600">
+                    {quiz.title}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell max-w-xs truncate">
+                    {quiz.description}
+                  </TableCell>
+                  <TableCell>{quiz.questionsCount}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{quiz.timeLimit} min</TableCell>
+                  <TableCell className="hidden sm:table-cell">{quiz.passingScore}%</TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        quiz.isActive
+                          ? 'bg-indigo-100 text-indigo-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
                     >
-                      <FileText size={16} />
-                    </Button> */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteQuiz(quiz.id)}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
+                      {quiz.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">{formatDate(quiz.createdAt)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Link href={`/admin/quizzes/${quiz.id}`}>
+                        <Button variant="ghost" size="sm" className="text-indigo-600 hover:bg-indigo-50">
+                          <Eye size={16} />
+                        </Button>
+                      </Link>
+                      <Link href={`/admin/quizzes/${quiz.id}/edit`}>
+                        <Button variant="ghost" size="sm" className="text-indigo-600 hover:bg-indigo-50">
+                          <Edit size={16} />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-indigo-600 hover:bg-indigo-50"
+                        onClick={() => deleteQuiz(quiz.id)}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                  No quizzes found
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between mt-6">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
         <div className="text-sm text-gray-600">
           Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to{' '}
           {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)} of{' '}
           {pagination.totalCount} results
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Button
             variant="outline"
             size="sm"
             onClick={() => goToPage(1)}
             disabled={pagination.currentPage === 1}
+            className="text-indigo-600 border-indigo-300 hover:bg-indigo-50"
           >
             <ChevronsLeft size={16} />
           </Button>
@@ -314,10 +319,11 @@ export default function QuizzesPage() {
             size="sm"
             onClick={() => goToPage(pagination.currentPage - 1)}
             disabled={pagination.currentPage === 1}
+            className="text-indigo-600 border-indigo-300 hover:bg-indigo-50"
           >
             <ChevronLeft size={16} />
           </Button>
-          <span className="text-sm">
+          <span className="text-sm px-2 text-indigo-600">
             Page {pagination.currentPage} of {pagination.totalPages}
           </span>
           <Button
@@ -325,6 +331,7 @@ export default function QuizzesPage() {
             size="sm"
             onClick={() => goToPage(pagination.currentPage + 1)}
             disabled={pagination.currentPage === pagination.totalPages}
+            className="text-indigo-600 border-indigo-300 hover:bg-indigo-50"
           >
             <ChevronRight size={16} />
           </Button>
@@ -333,6 +340,7 @@ export default function QuizzesPage() {
             size="sm"
             onClick={() => goToPage(pagination.totalPages)}
             disabled={pagination.currentPage === pagination.totalPages}
+            className="text-indigo-600 border-indigo-300 hover:bg-indigo-50"
           >
             <ChevronsRight size={16} />
           </Button>

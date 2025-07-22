@@ -135,26 +135,26 @@ export default function QuizDetailPage() {
   const { quiz, questions, stats } = data;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-6 sm:py-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 flex-wrap">
           <Link href="/admin/quizzes">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="shrink-0">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold">{quiz.title}</h1>
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+          <h1 className="text-xl sm:text-2xl font-bold line-clamp-2">{quiz.title}</h1>
+          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
             quiz.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
           }`}>
             {quiz.isActive ? "Active" : "Inactive"}
           </span>
         </div>
-        <div className="flex gap-2">
-          <Link href={`/admin/quizzes/${quiz.id}/edit`}>
-            <Button variant="default" size="sm">
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Link href={`/admin/quizzes/${quiz.id}/edit`} className="flex-1 sm:flex-none">
+            <Button variant="default" size="sm" className="w-full sm:w-auto">
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
@@ -164,6 +164,7 @@ export default function QuizDetailPage() {
             size="sm"
             onClick={deleteQuiz}
             disabled={isDeleting}
+            className="flex-1 sm:flex-none"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             {isDeleting ? "Deleting..." : "Delete"}
@@ -172,42 +173,38 @@ export default function QuizDetailPage() {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Quiz Details Card */}
         <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-          <div className="bg-gray-50 px-6 py-4 border-b">
-            <h2 className="font-semibold flex items-center gap-2">
-              <FileText className="h-5 w-5 text-gray-500" />
+          <div className="bg-gray-50 px-4 sm:px-6 py-3 border-b">
+            <h2 className="font-semibold flex items-center gap-2 text-sm sm:text-base">
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
               Quiz Details
             </h2>
           </div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <table className="w-full">
               <tbody className="divide-y">
                 <tr>
-                  <td className="py-3 text-sm font-medium text-gray-500 w-1/3">Description</td>
-                  <td className="py-3 text-sm">{quiz.description || "-"}</td>
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-500 w-1/3">Description</td>
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm">{quiz.description || "-"}</td>
                 </tr>
                 <tr>
-                  <td className="py-3 text-sm font-medium text-gray-500">Category</td>
-                  <td className="py-3 text-sm">{quiz.category || "Uncategorized"}</td>
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-500">Time Limit</td>
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm">{quiz.timeLimit} minutes</td>
                 </tr>
                 <tr>
-                  <td className="py-3 text-sm font-medium text-gray-500">Time Limit</td>
-                  <td className="py-3 text-sm">{quiz.timeLimit} minutes</td>
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-500">Passing Score</td>
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm">{quiz.passingScore}%</td>
                 </tr>
                 <tr>
-                  <td className="py-3 text-sm font-medium text-gray-500">Passing Score</td>
-                  <td className="py-3 text-sm">{quiz.passingScore}%</td>
-                </tr>
-                <tr>
-                  <td className="py-3 text-sm font-medium text-gray-500">Created</td>
-                  <td className="py-3 text-sm">{formatDate(quiz.createdAt)}</td>
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-500">Created</td>
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm">{formatDate(quiz.createdAt)}</td>
                 </tr>
                 {quiz.updatedAt && (
                   <tr>
-                    <td className="py-3 text-sm font-medium text-gray-500">Updated</td>
-                    <td className="py-3 text-sm">{formatDate(quiz.updatedAt)}</td>
+                    <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-500">Updated</td>
+                    <td className="py-2 sm:py-3 text-xs sm:text-sm">{formatDate(quiz.updatedAt)}</td>
                   </tr>
                 )}
               </tbody>
@@ -217,41 +214,35 @@ export default function QuizDetailPage() {
 
         {/* Statistics Card */}
         <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-          <div className="bg-gray-50 px-6 py-4 border-b">
-            <h2 className="font-semibold flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-gray-500" />
+          <div className="bg-gray-50 px-4 sm:px-6 py-3 border-b">
+            <h2 className="font-semibold flex items-center gap-2 text-sm sm:text-base">
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
               Statistics
             </h2>
           </div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <table className="w-full">
               <tbody className="divide-y">
                 <tr>
-                  <td className="py-3 text-sm font-medium text-gray-500 w-1/3">Total Attempts</td>
-                  <td className="py-3 text-sm">{stats.totalAttempts}</td>
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-500 w-1/3">Total Attempts</td>
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm">{stats.totalAttempts}</td>
                 </tr>
                 <tr>
-                  <td className="py-3 text-sm font-medium text-gray-500">Average Score</td>
-                  <td className="py-3 text-sm">
-                    {stats.averageScore ? `${stats.averageScore.toFixed(1)}%` : "N/A"}
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-500">Average Score</td>
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm">
+                    {stats.averageScore ? `${Number(stats.averageScore).toFixed(1)}%` : "N/A"}
                   </td>
                 </tr>
                 <tr>
-                  <td className="py-3 text-sm font-medium text-gray-500">Pass Rate</td>
-                  <td className="py-3 text-sm">
-                    {stats.passRate ? `${stats.passRate.toFixed(1)}%` : "N/A"}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 text-sm font-medium text-gray-500">Completion Rate</td>
-                  <td className="py-3 text-sm">
-                    {stats.completionRate ? `${stats.completionRate.toFixed(1)}%` : "N/A"}
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-500">Pass Rate</td>
+                  <td className="py-2 sm:py-3 text-xs sm:text-sm">
+                    {stats.passRate ? `${Number(stats.passRate).toFixed(1)}%` : "N/A"}
                   </td>
                 </tr>
                 {stats.lastAttempt && (
                   <tr>
-                    <td className="py-3 text-sm font-medium text-gray-500">Last Attempt</td>
-                    <td className="py-3 text-sm">{formatDate(stats.lastAttempt)}</td>
+                    <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-500">Last Attempt</td>
+                    <td className="py-2 sm:py-3 text-xs sm:text-sm">{formatDate(stats.lastAttempt)}</td>
                   </tr>
                 )}
               </tbody>
@@ -259,56 +250,27 @@ export default function QuizDetailPage() {
           </div>
         </div>
 
-        {/* Quick Actions Card */}
-        <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-          <div className="bg-gray-50 px-6 py-4 border-b">
-            <h2 className="font-semibold">Quick Actions</h2>
-          </div>
-          <div className="p-4 space-y-2">
-            <Link href={`/admin/quizzes/${quiz.id}/preview`}>
-              <Button variant="outline" className="w-full justify-start">
-                <Eye className="h-4 w-4 mr-2" />
-                Preview Quiz
-              </Button>
-            </Link>
-            <Link href={`/admin/quizzes/${quiz.id}/results`}>
-              <Button variant="outline" className="w-full justify-start">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                View Results
-              </Button>
-            </Link>
-            <Link href={`/admin/quizzes/${quiz.id}/export`}>
-              <Button variant="outline" className="w-full justify-start">
-                <FileText className="h-4 w-4 mr-2" />
-                Export Data
-              </Button>
-            </Link>
-          </div>
-        </div>
+       
       </div>
 
       {/* Questions Section */}
-      <div className="mt-8 bg-white rounded-lg border shadow-sm overflow-hidden">
-        <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
-          <h2 className="font-semibold">Questions ({questions.length})</h2>
-          <div className="flex gap-2">
-            <Link href={`/admin/quizzes/${quiz.id}/questions`}>
-              <Button variant="outline" size="sm">
+      <div className="mt-6 sm:mt-8 bg-white rounded-lg border shadow-sm overflow-hidden">
+        <div className="bg-gray-50 px-4 sm:px-6 py-3 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <h2 className="font-semibold text-sm sm:text-base">Questions ({questions.length})</h2>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Link href={`/admin/quizzes/${quiz.id}/edit`} className="flex-1">
+              <Button variant="outline" size="sm" className="w-full">
                 <Edit className="h-4 w-4 mr-2" />
-                Manage Questions
+                <span className="hidden sm:inline">Manage</span>
+                <span className="sm:hidden">Edit</span>
               </Button>
             </Link>
-            <Link href={`/admin/quizzes/${quiz.id}/questions/new`}>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Question
-              </Button>
-            </Link>
+            
           </div>
         </div>
 
         {questions.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-6 text-center text-gray-500 text-sm">
             <p>No questions added yet.</p>
           </div>
         ) : (
@@ -316,41 +278,41 @@ export default function QuizDetailPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     #
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Question
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                     Type
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                     Points
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Correct Answer
+                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                    Correct
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {questions.map((question, index) => (
                   <tr key={question.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
                       {index + 1}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
+                    <td className="px-4 sm:px-6 py-3 text-xs sm:text-sm text-gray-500 max-w-[200px] sm:max-w-xs">
                       <div className="line-clamp-2">{question.text}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-500 hidden sm:table-cell">
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
                         {question.type || "Multiple Choice"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-500 hidden sm:table-cell">
                       {question.points || 1}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-500 hidden sm:table-cell">
                       {question.correctAnswer}
                     </td>
                   </tr>

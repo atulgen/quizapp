@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   FileText,
   Users,
@@ -11,33 +11,50 @@ import {
   Plus,
   Eye,
   Edit,
-  Trash2
-} from 'lucide-react';
+  Trash2,
+} from "lucide-react";
+import Link from "next/link";
 
-interface DashboardStats {
-  totalQuizzes: number;
-  totalStudents: number;
-  totalAttempts: number;
-  averageScore: number;
+interface DashboardData {
+  totals: {
+    quizzes: string;
+    questions: string;
+    students: string;
+    attempts: string;
+    activeQuizzes: string;
+  };
+  recentAttempts: {
+    id: number;
+    score: number;
+    passed: boolean;
+    completedAt: string;
+    studentName: string;
+    quizTitle: string;
+  }[];
+  quizStats: {
+    quizId: number;
+    quizTitle: string;
+    totalAttempts: string;
+    averageScore: string;
+    passRate: string;
+  }[];
 }
 
 interface RecentQuiz {
   id: number;
   title: string;
-  attempts: number;
+  attempts: string;
   avgScore: number;
   createdAt: string;
 }
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalQuizzes: 0,
-    totalStudents: 0,
-    totalAttempts: 0,
-    averageScore: 0
-  });
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
+    null
+  );
   const [recentQuizzes, setRecentQuizzes] = useState<RecentQuiz[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -45,33 +62,44 @@ export default function AdminDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      setLoading(true);
+      setError(null);
 
-      setStats({
-        totalQuizzes: 24,
-        totalStudents: 158,
-        totalAttempts: 342,
-        averageScore: 76.5
-      });
+      // Fetch dashboard data
+      const response = await fetch("/api/admin/stats");
+      if (!response.ok) {
+        throw new Error("Failed to fetch dashboard data");
+      }
+      const data = await response.json();
+      setDashboardData(data);
 
-      setRecentQuizzes([
-        { id: 1, title: "JavaScript Fundamentals", attempts: 45, avgScore: 82.3, createdAt: "2024-01-15" },
-        { id: 2, title: "React Basics", attempts: 38, avgScore: 78.9, createdAt: "2024-01-14" },
-        { id: 3, title: "Database Design", attempts: 29, avgScore: 71.2, createdAt: "2024-01-13" },
-        { id: 4, title: "API Development", attempts: 33, avgScore: 85.1, createdAt: "2024-01-12" }
-      ]);
+      // Fetch recent quizzes data
+      const quizzesResponse = await fetch("/api/admin/recent-quizzes");
+      if (!quizzesResponse.ok) {
+        throw new Error("Failed to fetch recent quizzes");
+      }
+      const quizzesData = await quizzesResponse.json();
+      setRecentQuizzes(quizzesData);
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      console.error("Error loading dashboard data:", error);
+      setError(
+        error instanceof Error ? error.message : "An unknown error occurred"
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDate = (date: string) => new Date(date).toLocaleDateString('en-GB');
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString("en-GB");
+  const formatDateTime = (date: string) =>
+    new Date(date).toLocaleString("en-GB");
 
-  const cardStyle = "border bg-white rounded-lg shadow-sm hover:shadow transition-all";
+  const cardStyle =
+    "border bg-white rounded-lg shadow-sm hover:shadow transition-all";
   const cardContent = "p-4 md:p-5";
-  const statLabel = "text-xs text-gray-500 uppercase font-semibold tracking-wider";
+  const statLabel =
+    "text-xs text-gray-500 uppercase font-semibold tracking-wider";
   const statValue = "text-xl md:text-2xl font-bold text-gray-800 mt-1";
   const iconWrap = "bg-gray-100 p-2 rounded-md";
 
@@ -90,18 +118,62 @@ export default function AdminDashboard() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">
+            <p className="font-medium">Error loading dashboard data</p>
+            <p className="text-sm">{error}</p>
+            <Button
+              variant="outline"
+              className="mt-2 text-red-700 border-red-300 hover:bg-red-100"
+              onClick={loadDashboardData}
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return null;
+  }
+
+  // Calculate average score across all quizzes
+  const totalAttempts = parseInt(dashboardData.totals.attempts);
+  const averageScore = dashboardData.quizStats.reduce((acc, quiz) => {
+    return (
+      acc +
+      (parseFloat(quiz.averageScore) * parseInt(quiz.totalAttempts)) /
+        totalAttempts
+    );
+  }, 0);
+
   return (
     <div className="min-h-screen bg-gray-50 py-2">
       <div className="max-w-7xl mx-auto px-4 space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Admin Dashboard
+            </h1>
             <p className="text-sm text-gray-500">Quiz Management Overview</p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Create Quiz
+          <Button
+            asChild
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm flex items-center gap-2"
+          >
+            <Link
+              href="/admin/quizzes/create"
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Create Quiz
+            </Link>
           </Button>
         </div>
 
@@ -112,9 +184,11 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className={statLabel}>Total Quizzes</p>
-                  <p className={statValue}>{stats.totalQuizzes}</p>
+                  <p className={statValue}>{dashboardData.totals.quizzes}</p>
                 </div>
-                <div className={iconWrap}><FileText className="w-5 h-5 text-blue-600" /></div>
+                <div className={iconWrap}>
+                  <FileText className="w-5 h-5 text-blue-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -123,9 +197,11 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className={statLabel}>Total Students</p>
-                  <p className={statValue}>{stats.totalStudents}</p>
+                  <p className={statValue}>{dashboardData.totals.students}</p>
                 </div>
-                <div className={iconWrap}><Users className="w-5 h-5 text-green-600" /></div>
+                <div className={iconWrap}>
+                  <Users className="w-5 h-5 text-green-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -134,9 +210,11 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className={statLabel}>Total Attempts</p>
-                  <p className={statValue}>{stats.totalAttempts}</p>
+                  <p className={statValue}>{dashboardData.totals.attempts}</p>
                 </div>
-                <div className={iconWrap}><Clock className="w-5 h-5 text-yellow-500" /></div>
+                <div className={iconWrap}>
+                  <Clock className="w-5 h-5 text-yellow-500" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -145,75 +223,71 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className={statLabel}>Average Score</p>
-                  <p className={statValue}>{stats.averageScore}%</p>
+                  <p className={statValue}>{averageScore.toFixed(1)}%</p>
                 </div>
-                <div className={iconWrap}><TrendingUp className="w-5 h-5 text-purple-600" /></div>
+                <div className={iconWrap}>
+                  <TrendingUp className="w-5 h-5 text-purple-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
-
-        {/* Recent Quizzes */}
+        {/* Quiz Statistics */}
         <Card className="bg-white rounded-lg shadow-sm">
-          <CardHeader className="  border-b">
-            <CardTitle className="text-lg font-semibold text-gray-800">Recent Quizzes</CardTitle>
+          <CardHeader className="border-b">
+            <CardTitle className="text-lg font-semibold text-gray-800">
+              Quiz Statistics
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0 divide-y">
-            {recentQuizzes.map(quiz => (
-              <div key={quiz.id} className="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition">
+            {dashboardData.quizStats.map((quiz) => (
+              <div
+                key={quiz.quizId}
+                className="flex justify-between items-center px-4 py-3 hover:bg-gray-50 transition"
+              >
                 <div>
-                  <h3 className="font-medium text-gray-800">{quiz.title}</h3>
+                  <h3 className="font-medium text-gray-800">
+                    {quiz.quizTitle}
+                  </h3>
                   <div className="text-sm text-gray-500 mt-1 space-x-4">
-                    <span>{quiz.attempts} attempts</span>
-                    <span>Avg: {quiz.avgScore}%</span>
-                    <span>{formatDate(quiz.createdAt)}</span>
+                    <span>{quiz.totalAttempts} attempts</span>
+                    <span>
+                      Avg Score: {parseFloat(quiz.averageScore).toFixed(1)}%
+                    </span>
+                    <span>
+                      Pass Rate: {parseFloat(quiz.passRate).toFixed(1)}%
+                    </span>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="border-gray-300 hover:bg-gray-100">
-                    <Eye className="w-4 h-4" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 hover:bg-gray-100"
+                  >
+                    <Link href={`/admin/quizzes/${quiz.quizId}`}>
+                      <Eye className="w-4 h-4" />
+                    </Link>
                   </Button>
-                  <Button variant="outline" size="sm" className="border-gray-300 hover:bg-gray-100">
-                    <Edit className="w-4 h-4" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 hover:bg-gray-100"
+                  >
+                    <Link href={`/admin/quizzes/${quiz.quizId}/edit`}>
+                      <Edit className="w-4 h-4" />
+                    </Link>
                   </Button>
-                  <Button variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {/* <Button variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50">
+                    `
+                      <Trash2 className="w-4 h-4" />
+                    
+                  </Button> */}
                 </div>
               </div>
             ))}
           </CardContent>
         </Card>
-
-        {/* Quick Actions */}
-        {/* <Card className="bg-white border rounded-lg shadow-sm">
-          <CardHeader className="px-4 py-3 border-b">
-            <CardTitle className="text-lg font-semibold text-gray-800">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-20 flex items-start gap-3 text-left p-3 border-2 border-gray-300 hover:border-gray-400 rounded-lg">
-              <FileText className="w-5 h-5 mt-1 text-gray-600" />
-              <div>
-                <p className="font-medium text-gray-800">Create New Quiz</p>
-                <p className="text-sm text-gray-500">Add questions and settings</p>
-              </div>
-            </Button>
-            <Button variant="outline" className="h-20 flex items-start gap-3 text-left p-3 border-2 border-gray-300 hover:border-gray-400 rounded-lg">
-              <Users className="w-5 h-5 mt-1 text-gray-600" />
-              <div>
-                <p className="font-medium text-gray-800">Manage Students</p>
-                <p className="text-sm text-gray-500">View and edit student data</p>
-              </div>
-            </Button>
-            <Button variant="outline" className="h-20 flex items-start gap-3 text-left p-3 border-2 border-gray-300 hover:border-gray-400 rounded-lg">
-              <TrendingUp className="w-5 h-5 mt-1 text-gray-600" />
-              <div>
-                <p className="font-medium text-gray-800">View Reports</p>
-                <p className="text-sm text-gray-500">Analyze quiz performance</p>
-              </div>
-            </Button>
-          </CardContent>
-        </Card> */}
       </div>
     </div>
   );
