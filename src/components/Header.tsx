@@ -26,7 +26,7 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white shadow-sm fixed top-2 left-0 right-0 z-50">
+    <header className="bg-white shadow-sm fixed top-0 left-0 right-0 z-50">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2">
           <div className="  flex items-center justify-center">

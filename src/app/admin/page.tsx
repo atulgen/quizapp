@@ -1,19 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  FileText,
-  Users,
-  TrendingUp,
   Clock,
-  Plus,
-  Eye,
   Edit,
-  Trash2,
+  Eye,
+  FileText,
+  Plus,
+  TrendingUp,
+  Users
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 interface DashboardData {
   totals: {
@@ -218,7 +217,7 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card className={cardStyle}>
+          {/* <Card className={cardStyle}>
             <CardContent className={cardContent}>
               <div className="flex justify-between items-center">
                 <div>
@@ -230,7 +229,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
         {/* Quiz Statistics */}
         <Card className="bg-white rounded-lg shadow-sm">

@@ -1,32 +1,23 @@
 // app/admin/quizzes/create/page.tsx
 "use client";
 
-import { useState, useRef } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   ArrowLeft,
-  Plus,
-  Trash2,
+  Check,
   ChevronDown,
   ChevronUp,
+  Menu,
+  Plus,
+  Trash2,
   Upload,
   X,
-  Check,
-  Menu,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useRef, useState } from "react";
 
 interface QuizData {
   title: string;

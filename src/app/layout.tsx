@@ -1,9 +1,8 @@
-// src/app/layout.tsx - Modified to use conditional layouts
+// src/app/layout.tsx - Fixed server component
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import LayoutProvider from "@/components/LayoutProvider";
-
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

@@ -1,4 +1,5 @@
-// src/components/layouts/StudentLayout.tsx
+'use client';
+
 import Header from "@/components/Header";
 import Image from "next/image";
 
@@ -11,7 +12,7 @@ export default function StudentLayout({
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      <main className="flex-grow container mx-auto">
+      <main className=" container ">
         {children}
       </main>
       

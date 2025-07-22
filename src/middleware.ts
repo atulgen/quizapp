@@ -11,32 +11,49 @@ export async function middleware(request: NextRequest) {
   // Public routes that don't require authentication
   const publicRoutes = ['/login', '/api/auth/login'];
   
+  // Create response first
+  let response: NextResponse;
+  
   if (publicRoutes.includes(pathname)) {
-    return NextResponse.next();
+    response = NextResponse.next();
   }
-
   // Check for admin routes
-  if (pathname.startsWith('/admin')) {
+  else if (pathname.startsWith('/admin')) {
     const token = request.cookies.get('admin-token')?.value;
 
     if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      response = NextResponse.redirect(new URL('/login', request.url));
+    } else {
+      try {
+        await jwtVerify(token, secret);
+        response = NextResponse.next();
+      } catch (error) {
+        // Token is invalid, redirect to login
+        response = NextResponse.redirect(new URL('/login', request.url));
+        response.cookies.delete('admin-token');
+      }
     }
-
-    try {
-      await jwtVerify(token, secret);
-      return NextResponse.next();
-    } catch (error) {
-      // Token is invalid, redirect to login
-      const response = NextResponse.redirect(new URL('/login', request.url));
-      response.cookies.delete('admin-token');
-      return response;
-    }
+  } else {
+    response = NextResponse.next();
   }
 
-  return NextResponse.next();
+  // Add pathname to headers for LayoutProvider (only for successful requests)
+  if (response.status === 200 || !response.headers.get('location')) {
+    response.headers.set('x-pathname', pathname);
+  }
+
+  return response;
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/login']
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 };

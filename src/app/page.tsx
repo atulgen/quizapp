@@ -111,10 +111,9 @@ export default function EnhancedQuizDashboard() {
     if (quiz.status === 'completed') {
       return (
         <button
-          onClick={() => router.push(`/results/${quiz.id}`)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-gray-500 text-white rounded-md text-sm font-medium transition-colors"
         >
-          View Results
+          Attempted
         </button>
       );
     }
