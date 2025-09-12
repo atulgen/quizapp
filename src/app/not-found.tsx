@@ -1,3 +1,5 @@
+//src/app/_not-found
+
 'use client'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'

@@ -51,14 +51,30 @@ export default function QuizPage() {
     };
   }, [answers, isSubmitting]);
 
+  const cleanOption = (option: any) => {
+  let cleaned = String(option);
+  
+  // Remove all unwanted characters and quotes
+  cleaned = cleaned
+    .replace(/^\[|\]$/g, '') // Remove [ ] at start/end
+    .replace(/^["']|["']$/g, '') // Remove quotes at start/end
+    .replace(/\\"/g, '"') // Unescape quotes
+    .trim();
+  
+  return cleaned;
+};
+
   // Load quiz data and initialize timer
-  useEffect(() => {
+useEffect(() => {
     const studentData = localStorage.getItem("quizStudent");
     if (!studentData) {
       router.push("/register");
       return;
     }
 
+    if(localStorage.getItem("")){
+      
+    }
     const parsedStudent = JSON.parse(studentData);
     setStudent(parsedStudent);
 
@@ -76,6 +92,7 @@ export default function QuizPage() {
         }
 
         const data = await response.json();
+        console.log(data)
         if (!data.quiz) {
           throw new Error("No quiz found");
         }
@@ -83,19 +100,60 @@ export default function QuizPage() {
           throw new Error("Invalid time limit");
         }
 
-        const cleanedQuestions = data.questions.map((question: Question) => ({
-          ...question,
-          options: question.options.map((opt) =>
-            typeof opt === "string"
-              ? opt.replace(/^["'\[ ]+|["'\] ]+$/g, "")
-              : opt
-          ),
-        }));
+       const cleanedQuestions = data.questions.map((question: { options: any[]; id: any; }) => {
+  try {
+    // Join all array elements to reconstruct the original string
+    const joinedString = question.options.join('');
+    
+    // Extract all text between quotes using regex
+    const quotedMatches = joinedString.match(/"([^"]*?)"/g);
+    
+    if (quotedMatches && quotedMatches.length > 0) {
+      // Remove quotes from matched strings
+      const cleanedOptions = quotedMatches.map(match => 
+        match.replace(/^"|"$/g, '').trim()
+      ).filter(option => option.length > 0);
+      
+      return {
+        ...question,
+        options: cleanedOptions
+      };
+    }
+    
+    // If no quoted matches, try fallback method
+    const fallbackOptions = question.options.map(opt => 
+      String(opt)
+        .replace(/[\[\]"]/g, '') // Remove brackets and quotes
+        .replace(/^\s+|\s+$/g, '') // Trim whitespace
+    ).filter(opt => opt.length > 0 && opt !== ','); // Remove empty and comma-only options
+    
+    // If we have meaningful options, use them
+    if (fallbackOptions.length >= 2) {
+      return {
+        ...question,
+        options: fallbackOptions
+      };
+    }
+    
+    // Last resort: create generic options
+    return {
+      ...question,
+      options: ['Option A', 'Option B', 'Option C', 'Option D']
+    };
+    
+  } catch (error) {
+    console.error('Error processing question', question.id, ':', error);
+    return {
+      ...question,
+      options: ['Option A', 'Option B', 'Option C', 'Option D']
+    };
+  }
+});
 
-        setQuizData({
-          quiz: data.quiz,
-          questions: cleanedQuestions,
-        });
+setQuizData({
+  quiz: data.quiz,
+  questions: cleanedQuestions,
+});
 
         const quizDuration = data.quiz.timeLimit * 60;
         const savedTime = localStorage.getItem(`quiz_${data.quiz.id}_time`);
@@ -133,7 +191,6 @@ export default function QuizPage() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [router, quizId]);
-
   // Timer countdown
   useEffect(() => {
     if (!quizData || timeLeft <= 0) return;
@@ -401,8 +458,8 @@ export default function QuizPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
-        <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6 mb-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2">
+        <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6 mb-2">
           {/* Question */}
           <div className="mb-6">
             <h2 className="text-base sm:text-lg font-medium text-gray-800 mb-4">
@@ -458,85 +515,89 @@ export default function QuizPage() {
         </div>
 
         {/* Navigation */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <button
-            onClick={goToPreviousQuestion}
-            disabled={currentQuestionIndex === 0}
-            className="flex items-center space-x-2 px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            <span>Previous</span>
-          </button>
+<div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+  {/* Previous + Next together */}
+  <div className="flex flex-row items-center gap-3 w-full sm:w-auto">
+    <button
+      onClick={goToPreviousQuestion}
+      disabled={currentQuestionIndex === 0}
+      className="flex items-center space-x-2 px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
+    >
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M15 19l-7-7 7-7"
+        />
+      </svg>
+      <span>Previous</span>
+    </button>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-            <button
-              onClick={goToNextQuestion}
-              disabled={currentQuestionIndex === quizData.questions.length - 1}
-              className="flex items-center space-x-2 px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
-            >
-              <span>Next</span>
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
+    <button
+      onClick={goToNextQuestion}
+      disabled={currentQuestionIndex === quizData.questions.length - 1}
+      className="flex items-center space-x-2 px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
+    >
+      <span>Next</span>
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9 5l7 7-7 7"
+        />
+      </svg>
+    </button>
+  </div>
 
-            <button
-              onClick={confirmSubmit}
-              disabled={isSubmitting}
-              className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
-            >
-              {isSubmitting ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Submitting...
-                </span>
-              ) : (
-                "Submit Quiz"
-              )}
-            </button>
-          </div>
-        </div>
+  {/* Submit Quiz stays separate */}
+  <button
+    onClick={confirmSubmit}
+    disabled={isSubmitting}
+    className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+  >
+    {isSubmitting ? (
+      <span className="flex items-center justify-center">
+        <svg
+          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
+        </svg>
+        Submitting...
+      </span>
+    ) : (
+      "Submit Quiz"
+    )}
+  </button>
+</div>
+
+
       </div>
 
       {/* Submit Confirmation Modal */}

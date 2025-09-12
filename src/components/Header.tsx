@@ -52,11 +52,7 @@ export default function Header() {
             </button>
           </div>
         ) : (
-          <Link href="/register">
-            <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity">
-              Sign In
-            </button>
-          </Link>
+          <h1>Welcome, please Register</h1>
         )}
       </div>
     </header>
