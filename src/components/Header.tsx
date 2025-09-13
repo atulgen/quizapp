@@ -52,7 +52,7 @@ export default function Header() {
             </button>
           </div>
         ) : (
-          <h1>Welcome, please Register</h1>
+          <h1>Welcome </h1>
         )}
       </div>
     </header>
