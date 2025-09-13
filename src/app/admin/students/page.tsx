@@ -272,104 +272,104 @@ export default function StudentsPage() {
   };
 
   const generateOfferLetterContent = (
-    student: Student,
-    config: DocumentConfig
-  ) => {
-    const formattedIssueDate = formatDate(config.issueDate);
-    const formattedJoiningDate = formatDate(config.joiningDate);
-    const formattedEndDate = formatDate(config.endDate);
+  student: Student,
+  config: DocumentConfig
+) => {
+  const formattedIssueDate = formatDate(config.issueDate);
+  const formattedJoiningDate = formatDate(config.joiningDate);
+  const formattedEndDate = formatDate(config.endDate);
 
-    return `
-      <div style="font-family: 'Times New Roman', serif; line-height: 1.6; max-width: 8.5in; margin: 0 auto; color: #000000; background-color: #ffffff; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <img src="https://rxo5hd130p.ufs.sh/f/q5swrPKmNsM9oTaM85w42eRf7hMqdyWPJ1QctavKoT8OLpVY" alt="Company Logo" style="width: 100px; height: auto; margin-bottom: 10px;" />
-          <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #000000;">
-            Gennext IT Management And Consulting Pvt Ltd
-          </div>
-          <div style="font-size: 12px; margin-bottom: 20px; color: #333333;">
-            33B Pocket A, Mayur Vihar, Phase 2<br>
-            Delhi 110091
-          </div>
+  return `
+    <div style="font-family: 'Times New Roman', serif !important; line-height: 1.6; max-width: 8.5in; margin: 0 auto; color: #000000 !important; background-color: #ffffff !important; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 30px; color: #000000 !important;">
+        <img src="https://rxo5hd130p.ufs.sh/f/q5swrPKmNsM9oTaM85w42eRf7hMqdyWPJ1QctavKoT8OLpVY" alt="Company Logo" style="width: 100px; height: auto; margin-bottom: 10px;" />
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #000000 !important;">
+          Gennext IT Management And Consulting Pvt Ltd
         </div>
-
-        <div style="text-align: right; margin-bottom: 20px; font-weight: bold; color: #000000;">
-          ${formattedIssueDate}
-        </div>
-
-        <div style="margin-bottom: 20px; color: #000000;">
-          ${student.name}<br>
-          Email: ${student.email}
-        </div>
-
-        <div style="color: #000000;">Dear ${student.name},</div>
-
-        <div style="font-weight: bold; margin: 20px 0; color: #000000;">
-          Subject: Internship offer letter
-        </div>
-
-        <div style="margin: 15px 0; text-align: justify; color: #000000;">
-          We are pleased to extend to you an offer to join Gennext IT Management
-          And Consulting Pvt Ltd as an Intern. We are excited about the prospect
-          of you joining our team and contributing to our projects.
-        </div>
-
-        <ol style="padding-left: 20px; color: #000000;">
-          <li style="margin-bottom: 5px;">Position: ${config.designation}</li>
-          <li style="margin-bottom: 5px;">Monthly Stipend: Rs. ${config.stipend}</li>
-          <li style="margin-bottom: 5px;">Internship Duration: Initial period of ${config.timePeriod}</li>
-          <li style="margin-bottom: 5px;">Extension: The internship may be extended based on your performance.</li>
-          <li style="margin-bottom: 5px;">Base Location: Noida</li>
-        </ol>
-
-        <div style="margin: 20px 0; color: #000000;">
-          <div style="font-weight: bold; margin-bottom: 10px;">Terms and Conditions of Employment:</div>
-          
-          <p style="color: #000000;"><strong>Reporting:</strong> You will report to Atul Raj, Software Engineer</p>
-          
-          <p style="color: #000000;"><strong>Work Hours:</strong> Our regular working hours will be 9:00 AM to 6:00 PM, Monday to Saturday.</p>
-          
-          <p style="color: #000000;"><strong>Benefits:</strong> As part of this internship you will be provided an
-          opportunity to improve your basics in full stack development and then
-          work on live projects and get exposure to work on industry related
-          software challenges and mitigate these through software development.</p>
-        </div>
-
-        <div style="page-break-before: always; margin: 15px 0; text-align: justify; padding-top: 20px; color: #000000;">
-          We look forward to welcoming you to Gennext IT Management And
-          Consulting Pvt Ltd.
-        </div>
-
-        <div style="margin: 15px 0; text-align: justify; color: #000000;">
-          Your internship starts from <strong>${formattedJoiningDate}</strong> and will
-          continue through to <strong>${formattedEndDate}</strong>, post which we will
-          evaluate your performance and may offer you either extended paid
-          internship or an offer letter based on your performance.
-        </div>
-
-        <div style="margin: 15px 0; text-align: justify; color: #000000;">
-          The managing committee welcomes you and looks forward to a pleasant
-          and long term association with you.
-        </div>
-
-        <div style="margin: 15px 0; color: #000000;">Thanking You,</div>
-
-        <div style="margin-top: 50px; display: flex; justify-content: space-between; align-items: end;">
-          <div style="text-align: center;">
-            <div style="margin-bottom: 40px;">
-              <img src="https://rxo5hd130p.ufs.sh/f/q5swrPKmNsM9uAfht31kJCvqgXFyDsoUNcIdQBThGV8WZY0r" alt="Signature" style="width: 100px; height: auto;" />
-            </div>
-            <div style="color: #000000;">Ruchi Gupta (Director HR)</div>
-            <div style="color: #000000;">Gennext IT Management And Consulting Pvt Ltd.</div>
-          </div>
-          <div style="text-align: center;">
-            <div style="margin-bottom: 50px;"></div>
-            <div style="color: #000000;">(${student.name})</div>
-            <div style="color: #000000;">Candidate</div>
-          </div>
+        <div style="font-size: 12px; margin-bottom: 20px; color: #000000 !important;">
+          33B Pocket A, Mayur Vihar, Phase 2<br>
+          Delhi 110091
         </div>
       </div>
-    `;
-  };
+
+      <div style="text-align: right; margin-bottom: 20px; font-weight: bold; color: #000000 !important;">
+        ${formattedIssueDate}
+      </div>
+
+      <div style="margin-bottom: 20px; color: #000000 !important;">
+        ${student.name}<br>
+        Email: ${student.email}
+      </div>
+
+      <div style="color: #000000 !important;">Dear ${student.name},</div>
+
+      <div style="font-weight: bold; margin: 20px 0; color: #000000 !important;">
+        Subject: Internship offer letter
+      </div>
+
+      <div style="margin: 15px 0; text-align: justify; color: #000000 !important;">
+        We are pleased to extend to you an offer to join Gennext IT Management
+        And Consulting Pvt Ltd as an Intern. We are excited about the prospect
+        of you joining our team and contributing to our projects.
+      </div>
+
+      <ol style="padding-left: 20px; color: #000000 !important;">
+        <li style="margin-bottom: 5px; color: #000000 !important;">Position: ${config.designation}</li>
+        <li style="margin-bottom: 5px; color: #000000 !important;">Monthly Stipend: Rs. ${config.stipend}</li>
+        <li style="margin-bottom: 5px; color: #000000 !important;">Internship Duration: Initial period of ${config.timePeriod}</li>
+        <li style="margin-bottom: 5px; color: #000000 !important;">Extension: The internship may be extended based on your performance.</li>
+        <li style="margin-bottom: 5px; color: #000000 !important;">Base Location: Noida</li>
+      </ol>
+
+      <div style="margin: 20px 0; color: #000000 !important;">
+        <div style="font-weight: bold; margin-bottom: 10px; color: #000000 !important;">Terms and Conditions of Employment:</div>
+        
+        <p style="color: #000000 !important;"><strong>Reporting:</strong> You will report to Atul Raj, Software Engineer</p>
+        
+        <p style="color: #000000 !important;"><strong>Work Hours:</strong> Our regular working hours will be 9:00 AM to 6:00 PM, Monday to Saturday.</p>
+        
+        <p style="color: #000000 !important;"><strong>Benefits:</strong> As part of this internship you will be provided an
+        opportunity to improve your basics in full stack development and then
+        work on live projects and get exposure to work on industry related
+        software challenges and mitigate these through software development.</p>
+      </div>
+
+      <div style="page-break-before: always; margin: 15px 0; text-align: justify; padding-top: 20px; color: #000000 !important;">
+        We look forward to welcoming you to Gennext IT Management And
+        Consulting Pvt Ltd.
+      </div>
+
+      <div style="margin: 15px 0; text-align: justify; color: #000000 !important;">
+        Your internship starts from <strong>${formattedJoiningDate}</strong> and will
+        continue through to <strong>${formattedEndDate}</strong>, post which we will
+        evaluate your performance and may offer you either extended paid
+        internship or an offer letter based on your performance.
+      </div>
+
+      <div style="margin: 15px 0; text-align: justify; color: #000000 !important;">
+        The managing committee welcomes you and looks forward to a pleasant
+        and long term association with you.
+      </div>
+
+      <div style="margin: 15px 0; color: #000000 !important;">Thanking You,</div>
+
+      <div style="margin-top: 50px; display: flex; justify-content: space-between; align-items: end;">
+        <div style="text-align: center;">
+          <div style="margin-bottom: 40px;">
+            <img src="https://rxo5hd130p.ufs.sh/f/q5swrPKmNsM9uAfht31kJCvqgXFyDsoUNcIdQBThGV8WZY0r" alt="Signature" style="width: 100px; height: auto;" />
+          </div>
+          <div style="color: #000000 !important;">Ruchi Gupta (Director HR)</div>
+          <div style="color: #000000 !important;">Gennext IT Management And Consulting Pvt Ltd.</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="margin-bottom: 50px;"></div>
+          <div style="color: #000000 !important;">(${student.name})</div>
+          <div style="color: #000000 !important;">Candidate</div>
+        </div>
+      </div>
+    </div>
+  `;
+};
 
   const loadLibraries = async () => {
     if (typeof window !== "undefined") {
@@ -421,7 +421,7 @@ export default function StudentsPage() {
     };
   };
 
-  const sanitizeHtmlForCanvas = (htmlString: string): string => {
+const sanitizeHtmlForCanvas = (htmlString: string): string => {
   // Remove any CSS that might use lab() color functions or other unsupported features
   return htmlString
     .replace(/color:\s*lab\([^)]*\)/gi, 'color: #000000')
@@ -430,10 +430,17 @@ export default function StudentsPage() {
     // Replace any other modern CSS color functions that might not be supported
     .replace(/color:\s*oklch\([^)]*\)/gi, 'color: #000000')
     .replace(/color:\s*lch\([^)]*\)/gi, 'color: #000000')
-    .replace(/color:\s*oklab\([^)]*\)/gi, 'color: #000000');
+    .replace(/color:\s*oklab\([^)]*\)/gi, 'color: #000000')
+    // Replace CSS custom properties that might contain unsupported colors
+    .replace(/var\(--[^)]*\)/gi, '#000000')
+    // Ensure all text is black and backgrounds are white
+    .replace(/<div([^>]*)>/gi, '<div$1 style="color: #000000; background-color: transparent;">')
+    .replace(/<p([^>]*)>/gi, '<p$1 style="color: #000000;">')
+    .replace(/<span([^>]*)>/gi, '<span$1 style="color: #000000;">');
 };
 
- const generatePDFBlob = async (
+
+const generatePDFBlob = async (
   student: Student,
   config: DocumentConfig
 ): Promise<Blob> => {
@@ -454,9 +461,23 @@ export default function StudentsPage() {
   tempDiv.style.width = "794px";
   tempDiv.style.backgroundColor = "#ffffff";
   tempDiv.style.color = "#000000";
+  tempDiv.style.fontFamily = "'Times New Roman', serif";
+  
+  // Force all child elements to have safe colors
+  tempDiv.style.cssText += `
+    * {
+      color: #000000 !important;
+      background-color: transparent !important;
+      border-color: #000000 !important;
+    }
+  `;
+  
   document.body.appendChild(tempDiv);
 
   try {
+    // Wait a moment for styles to apply
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     const canvas = await html2canvas(tempDiv, {
       scale: 2,
       useCORS: true,
@@ -465,6 +486,18 @@ export default function StudentsPage() {
       width: 794,
       windowWidth: 794,
       logging: false,
+      onclone: (clonedDoc: { querySelectorAll: (arg0: string) => any; }) => {
+        // Apply additional sanitization to the cloned document
+        const allElements = clonedDoc.querySelectorAll('*');
+        allElements.forEach((element: HTMLElement) => {
+          const htmlElement = element as HTMLElement;
+          htmlElement.style.color = '#000000';
+          if (htmlElement.style.backgroundColor && 
+              htmlElement.style.backgroundColor !== 'transparent') {
+            htmlElement.style.backgroundColor = '#ffffff';
+          }
+        });
+      },
       ignoreElements: (element: Element) => {
         const tagName = element.tagName.toLowerCase();
         return tagName === 'script' || tagName === 'noscript';
@@ -497,6 +530,7 @@ export default function StudentsPage() {
     document.body.removeChild(tempDiv);
   }
 };
+
   const generateWordBlob = (student: Student, config: DocumentConfig): Blob => {
     const content = generateOfferLetterContent(student, config);
 
@@ -838,6 +872,7 @@ Generated on: ${new Date().toLocaleString()}
           </div>
         ) : (
           filteredStudents.map((student, index) => {
+            console.log("Rendering student:", student);
             const bestScore = getStudentBestScore(student);
             const status = getStudentStatus(student);
             const isSelected = selectedEmails.includes(student.email);

@@ -11,6 +11,7 @@ export async function GET() {
         id: students.id,
         name: students.name,
         email: students.email,
+        phone: students.phone,
       })
       .from(students);
 
