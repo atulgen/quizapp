@@ -213,7 +213,7 @@ export default function RegisterPage() {
                     Registering...
                   </span>
                 ) : (
-                  "Login in"
+                  "Register"
                 )}
               </button>
             </form>

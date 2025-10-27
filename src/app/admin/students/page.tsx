@@ -1,4 +1,3 @@
-// app/admin/students/page.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -272,104 +271,104 @@ export default function StudentsPage() {
   };
 
   const generateOfferLetterContent = (
-  student: Student,
-  config: DocumentConfig
-) => {
-  const formattedIssueDate = formatDate(config.issueDate);
-  const formattedJoiningDate = formatDate(config.joiningDate);
-  const formattedEndDate = formatDate(config.endDate);
+    student: Student,
+    config: DocumentConfig
+  ) => {
+    const formattedIssueDate = formatDate(config.issueDate);
+    const formattedJoiningDate = formatDate(config.joiningDate);
+    const formattedEndDate = formatDate(config.endDate);
 
-  return `
-    <div style="font-family: 'Times New Roman', serif !important; line-height: 1.6; max-width: 8.5in; margin: 0 auto; color: #000000 !important; background-color: #ffffff !important; padding: 20px;">
-      <div style="text-align: center; margin-bottom: 30px; color: #000000 !important;">
-        <img src="https://rxo5hd130p.ufs.sh/f/q5swrPKmNsM9oTaM85w42eRf7hMqdyWPJ1QctavKoT8OLpVY" alt="Company Logo" style="width: 100px; height: auto; margin-bottom: 10px;" />
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #000000 !important;">
-          Gennext IT Management And Consulting Pvt Ltd
-        </div>
-        <div style="font-size: 12px; margin-bottom: 20px; color: #000000 !important;">
-          33B Pocket A, Mayur Vihar, Phase 2<br>
-          Delhi 110091
-        </div>
-      </div>
-
-      <div style="text-align: right; margin-bottom: 20px; font-weight: bold; color: #000000 !important;">
-        ${formattedIssueDate}
-      </div>
-
-      <div style="margin-bottom: 20px; color: #000000 !important;">
-        ${student.name}<br>
-        Email: ${student.email}
-      </div>
-
-      <div style="color: #000000 !important;">Dear ${student.name},</div>
-
-      <div style="font-weight: bold; margin: 20px 0; color: #000000 !important;">
-        Subject: Internship offer letter
-      </div>
-
-      <div style="margin: 15px 0; text-align: justify; color: #000000 !important;">
-        We are pleased to extend to you an offer to join Gennext IT Management
-        And Consulting Pvt Ltd as an Intern. We are excited about the prospect
-        of you joining our team and contributing to our projects.
-      </div>
-
-      <ol style="padding-left: 20px; color: #000000 !important;">
-        <li style="margin-bottom: 5px; color: #000000 !important;">Position: ${config.designation}</li>
-        <li style="margin-bottom: 5px; color: #000000 !important;">Monthly Stipend: Rs. ${config.stipend}</li>
-        <li style="margin-bottom: 5px; color: #000000 !important;">Internship Duration: Initial period of ${config.timePeriod}</li>
-        <li style="margin-bottom: 5px; color: #000000 !important;">Extension: The internship may be extended based on your performance.</li>
-        <li style="margin-bottom: 5px; color: #000000 !important;">Base Location: Noida</li>
-      </ol>
-
-      <div style="margin: 20px 0; color: #000000 !important;">
-        <div style="font-weight: bold; margin-bottom: 10px; color: #000000 !important;">Terms and Conditions of Employment:</div>
-        
-        <p style="color: #000000 !important;"><strong>Reporting:</strong> You will report to Atul Raj, Software Engineer</p>
-        
-        <p style="color: #000000 !important;"><strong>Work Hours:</strong> Our regular working hours will be 9:00 AM to 6:00 PM, Monday to Saturday.</p>
-        
-        <p style="color: #000000 !important;"><strong>Benefits:</strong> As part of this internship you will be provided an
-        opportunity to improve your basics in full stack development and then
-        work on live projects and get exposure to work on industry related
-        software challenges and mitigate these through software development.</p>
-      </div>
-
-      <div style="page-break-before: always; margin: 15px 0; text-align: justify; padding-top: 20px; color: #000000 !important;">
-        We look forward to welcoming you to Gennext IT Management And
-        Consulting Pvt Ltd.
-      </div>
-
-      <div style="margin: 15px 0; text-align: justify; color: #000000 !important;">
-        Your internship starts from <strong>${formattedJoiningDate}</strong> and will
-        continue through to <strong>${formattedEndDate}</strong>, post which we will
-        evaluate your performance and may offer you either extended paid
-        internship or an offer letter based on your performance.
-      </div>
-
-      <div style="margin: 15px 0; text-align: justify; color: #000000 !important;">
-        The managing committee welcomes you and looks forward to a pleasant
-        and long term association with you.
-      </div>
-
-      <div style="margin: 15px 0; color: #000000 !important;">Thanking You,</div>
-
-      <div style="margin-top: 50px; display: flex; justify-content: space-between; align-items: end;">
-        <div style="text-align: center;">
-          <div style="margin-bottom: 40px;">
-            <img src="https://rxo5hd130p.ufs.sh/f/q5swrPKmNsM9uAfht31kJCvqgXFyDsoUNcIdQBThGV8WZY0r" alt="Signature" style="width: 100px; height: auto;" />
+    return `
+      <div style="font-family: 'Times New Roman', serif !important; line-height: 1.6; max-width: 8.5in; margin: 0 auto; color: #000000 !important; background-color: #ffffff !important; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 10px; color: #000000 !important;">
+          <img src="https://rxo5hd130p.ufs.sh/f/q5swrPKmNsM9oTaM85w42eRf7hMqdyWPJ1QctavKoT8OLpVY" alt="Company Logo" style="width: 100px; height: auto;" />
+          <div style="font-size: 16px; font-weight: bold; color: #000000 !important;">
+            Gennext IT Management And Consulting Pvt Ltd
           </div>
-          <div style="color: #000000 !important;">Ruchi Gupta (Director HR)</div>
-          <div style="color: #000000 !important;">Gennext IT Management And Consulting Pvt Ltd.</div>
+          <div style="font-size: 12px;  color: #000000 !important;">
+            33B Pocket A, Mayur Vihar, Phase 2<br>
+            Delhi 110091
+          </div>
         </div>
-        <div style="text-align: center;">
-          <div style="margin-bottom: 50px;"></div>
-          <div style="color: #000000 !important;">(${student.name})</div>
-          <div style="color: #000000 !important;">Candidate</div>
+
+        <div style="text-align: right; margin-bottom: 5px; font-weight: bold; color: #000000 !important;">
+          ${formattedIssueDate}
+        </div>
+
+        <div style="margin-bottom: 10px; color: #000000 !important;">
+          ${student.name}<br>
+          Email: ${student.email}
+        </div>
+
+        <div style="color: #000000 !important;">Dear ${student.name},</div>
+
+        <div style="font-weight: bold; margin: 20px 0; color: #000000 !important;">
+          Subject: Internship offer letter
+        </div>
+
+        <div style="margin: 15px 0; text-align: justify; color: #000000 !important;">
+          We are pleased to extend to you an offer to join Gennext IT Management
+          And Consulting Pvt Ltd as an Intern. We are excited about the prospect
+          of you joining our team and contributing to our projects.
+        </div>
+
+        <ul style="padding-left: 10px; color: #000000 !important;">
+          <li style="margin-bottom: 3px; color: #000000 !important;">Position: ${config.designation}</li>
+          <li style="margin-bottom: 3px; color: #000000 !important;">Monthly Stipend: Rs. ${config.stipend}</li>
+          <li style="margin-bottom: 3px; color: #000000 !important;">Internship Duration: Initial period of ${config.timePeriod}</li>
+          <li style="margin-bottom: 3px; color: #000000 !important;">Extension: The internship may be extended based on your performance.</li>
+          <li style="margin-bottom: 3px; color: #000000 !important;">Base Location: Noida</li>
+        </ul>
+
+        <div style="margin: 10px 0; color: #000000 !important;">
+          <div style="font-weight: bold; margin-bottom: 10px; color: #000000 !important;">Terms and Conditions of Employment:</div>
+          
+          <p style="color: #000000 !important;"><strong>Reporting:</strong> You will report to Atul Raj, Software Engineer</p>
+          
+          <p style="color: #000000 !important;"><strong>Work Hours:</strong> Our regular working hours will be 9:00 AM to 6:00 PM, Monday to Saturday.</p>
+          
+          <p style="color: #000000 !important;"><strong>Benefits:</strong> As part of this internship you will be provided an
+          opportunity to improve your basics in full stack development and then
+          work on live projects and get exposure to work on industry related
+          software challenges and mitigate these through software development.</p>
+        </div>
+
+        <div style="page-break-before: always; margin: 15px 0; text-align: justify; padding-top: 20px; color: #000000 !important;">
+          We look forward to welcoming you to Gennext IT Management And
+          Consulting Pvt Ltd.
+        </div>
+
+        <div style="margin: 15px 0; text-align: justify; color: #000000 !important;">
+          Your internship starts from <strong>${formattedJoiningDate}</strong> and will
+          continue through to <strong>${formattedEndDate}</strong>, post which we will
+          evaluate your performance and may offer you either extended paid
+          internship or an offer letter based on your performance.
+        </div>
+
+        <div style=" text-align: justify; color: #000000 !important;">
+          The managing committee welcomes you and looks forward to a pleasant
+          and long term association with you.
+        </div>
+
+        <div style="margin: 15px 0; color: #000000 !important;">Thanking You,</div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: end;">
+          <div style="text-align: center;">
+            <div style="">
+              <img src="https://rxo5hd130p.ufs.sh/f/q5swrPKmNsM9uAfht31kJCvqgXFyDsoUNcIdQBThGV8WZY0r" alt="Signature" style="width: 100px; height: auto;" />
+            </div>
+            <div style="color: #000000 !important;">Ruchi Gupta (Director HR)</div>
+            <div style="color: #000000 !important;">Gennext IT Management And Consulting Pvt Ltd.</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="margin-bottom: 50px;"></div>
+            <div style="color: #000000 !important;">(${student.name})</div>
+            <div style="color: #000000 !important;">Candidate</div>
+          </div>
         </div>
       </div>
-    </div>
-  `;
-};
+    `;
+  };
 
   const loadLibraries = async () => {
     if (typeof window !== "undefined") {
@@ -421,116 +420,183 @@ export default function StudentsPage() {
     };
   };
 
-const sanitizeHtmlForCanvas = (htmlString: string): string => {
-  // Remove any CSS that might use lab() color functions or other unsupported features
-  return htmlString
-    .replace(/color:\s*lab\([^)]*\)/gi, 'color: #000000')
-    .replace(/background-color:\s*lab\([^)]*\)/gi, 'background-color: #ffffff')
-    .replace(/border-color:\s*lab\([^)]*\)/gi, 'border-color: #000000')
-    // Replace any other modern CSS color functions that might not be supported
-    .replace(/color:\s*oklch\([^)]*\)/gi, 'color: #000000')
-    .replace(/color:\s*lch\([^)]*\)/gi, 'color: #000000')
-    .replace(/color:\s*oklab\([^)]*\)/gi, 'color: #000000')
-    // Replace CSS custom properties that might contain unsupported colors
-    .replace(/var\(--[^)]*\)/gi, '#000000')
-    // Ensure all text is black and backgrounds are white
-    .replace(/<div([^>]*)>/gi, '<div$1 style="color: #000000; background-color: transparent;">')
-    .replace(/<p([^>]*)>/gi, '<p$1 style="color: #000000;">')
-    .replace(/<span([^>]*)>/gi, '<span$1 style="color: #000000;">');
-};
-
-
-const generatePDFBlob = async (
-  student: Student,
-  config: DocumentConfig
-): Promise<Blob> => {
-  const { jsPDF, html2canvas } = await loadLibraries();
-
-  if (!jsPDF || !html2canvas) {
-    throw new Error("Failed to load PDF generation libraries");
-  }
-
-  const content = generateOfferLetterContent(student, config);
-  const sanitizedContent = sanitizeHtmlForCanvas(content);
-
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = sanitizedContent;
-  tempDiv.style.position = "absolute";
-  tempDiv.style.left = "-9999px";
-  tempDiv.style.top = "0";
-  tempDiv.style.width = "794px";
-  tempDiv.style.backgroundColor = "#ffffff";
-  tempDiv.style.color = "#000000";
-  tempDiv.style.fontFamily = "'Times New Roman', serif";
-  
-  // Force all child elements to have safe colors
-  tempDiv.style.cssText += `
-    * {
-      color: #000000 !important;
-      background-color: transparent !important;
-      border-color: #000000 !important;
-    }
-  `;
-  
-  document.body.appendChild(tempDiv);
-
-  try {
-    // Wait a moment for styles to apply
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    const canvas = await html2canvas(tempDiv, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: "#ffffff",
-      width: 794,
-      windowWidth: 794,
-      logging: false,
-      onclone: (clonedDoc: { querySelectorAll: (arg0: string) => any; }) => {
-        // Apply additional sanitization to the cloned document
-        const allElements = clonedDoc.querySelectorAll('*');
-        allElements.forEach((element: HTMLElement) => {
-          const htmlElement = element as HTMLElement;
-          htmlElement.style.color = '#000000';
-          if (htmlElement.style.backgroundColor && 
-              htmlElement.style.backgroundColor !== 'transparent') {
-            htmlElement.style.backgroundColor = '#ffffff';
-          }
-        });
-      },
-      ignoreElements: (element: Element) => {
-        const tagName = element.tagName.toLowerCase();
-        return tagName === 'script' || tagName === 'noscript';
-      }
-    });
-
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "px",
-      format: [794, 1123],
-    });
-
-    const imgWidth = 794;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    pdf.addImage(
-      canvas.toDataURL("image/png"),
-      "PNG",
-      0,
-      0,
-      imgWidth,
-      imgHeight
+  const sanitizeHtmlForCanvas = (htmlString: string): string => {
+    // Remove any CSS that might use lab() color functions or other unsupported features
+    return (
+      htmlString
+        .replace(/color:\s*lab\([^)]*\)/gi, "color: #000000")
+        .replace(
+          /background-color:\s*lab\([^)]*\)/gi,
+          "background-color: #ffffff"
+        )
+        .replace(/border-color:\s*lab\([^)]*\)/gi, "border-color: #000000")
+        // Replace any other modern CSS color functions that might not be supported
+        .replace(/color:\s*oklch\([^)]*\)/gi, "color: #000000")
+        .replace(/color:\s*lch\([^)]*\)/gi, "color: #000000")
+        .replace(/color:\s*oklab\([^)]*\)/gi, "color: #000000")
+        // Replace CSS custom properties that might contain unsupported colors
+        .replace(/var\(--[^)]*\)/gi, "#000000")
+        // Ensure all text is black and backgrounds are white
+        .replace(
+          /<div([^>]*)>/gi,
+          '<div$1 style="color: #000000; background-color: transparent;">'
+        )
+        .replace(/<p([^>]*)>/gi, '<p$1 style="color: #000000;">')
+        .replace(/<span([^>]*)>/gi, '<span$1 style="color: #000000;">')
     );
+  };
 
-    return new Blob([pdf.output("blob")], { type: "application/pdf" });
-  } catch (error) {
-    console.error("PDF generation error:", error);
-    throw new Error("Failed to generate PDF. Please try again.");
-  } finally {
-    document.body.removeChild(tempDiv);
-  }
-};
+  const generatePDFBlob = async (
+    student: Student,
+    config: DocumentConfig
+  ): Promise<Blob> => {
+    const { jsPDF, html2canvas } = await loadLibraries();
 
+    if (!jsPDF || !html2canvas) {
+      throw new Error("Failed to load PDF generation libraries");
+    }
+
+    const content = generateOfferLetterContent(student, config);
+    const sanitizedContent = sanitizeHtmlForCanvas(content);
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "absolute";
+    iframe.style.left = "-9999px";
+    iframe.style.width = "794px"; // Approximate A4 width in px (at 96dpi)
+    iframe.style.height = "auto";
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc) {
+      document.body.removeChild(iframe);
+      throw new Error("Failed to create iframe document");
+    }
+
+    iframeDoc.open();
+    iframeDoc.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Times New Roman', serif;
+            background-color: #ffffff;
+            color: #000000;
+            width: 794px;
+          }
+          * {
+            box-sizing: border-box;
+            color: #000000 !important;
+            background-color: transparent !important;
+            border-color: #000000 !important;
+          }
+        </style>
+      </head>
+      <body>
+        ${sanitizedContent}
+      </body>
+    </html>
+  `);
+    iframeDoc.close();
+
+    try {
+      // Wait for images to load
+      const images = iframeDoc.querySelectorAll("img");
+      const loadPromises = Array.from(images).map(
+        (img: HTMLImageElement) =>
+          new Promise((resolve, reject) => {
+            if (img.complete) {
+              resolve(null);
+            } else {
+              img.onload = resolve;
+              img.onerror = reject;
+            }
+          })
+      );
+      await Promise.all(loadPromises);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const scale = 2;
+      const pageWidthPx = 794;
+      const pageHeightPx = 1123;
+
+      const canvas = await html2canvas(iframeDoc.body, {
+        scale,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: "#ffffff",
+        width: pageWidthPx,
+        windowWidth: pageWidthPx,
+        logging: false,
+      });
+
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: [pageWidthPx, pageHeightPx],
+      });
+
+      const canvasPageHeight = pageHeightPx * scale;
+      let sourceY = 0;
+      let pageCount = 0;
+
+      while (sourceY < canvasHeight) {
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = canvasWidth;
+        const remainingHeight = canvasHeight - sourceY;
+        tempCanvas.height = Math.min(canvasPageHeight, remainingHeight);
+
+        // Skip adding a page if the remaining height is too small (e.g., less than 10px)
+        if (tempCanvas.height < 10) {
+          break;
+        }
+
+        const tempCtx = tempCanvas.getContext("2d");
+        if (!tempCtx) throw new Error("Failed to get temp canvas context");
+
+        tempCtx.drawImage(
+          canvas,
+          0,
+          sourceY,
+          canvasWidth,
+          tempCanvas.height,
+          0,
+          0,
+          canvasWidth,
+          tempCanvas.height
+        );
+
+        const tempImgData = tempCanvas.toDataURL("image/png");
+        if (pageCount > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(
+          tempImgData,
+          "PNG",
+          0,
+          0,
+          pageWidthPx,
+          tempCanvas.height / scale
+        );
+
+        sourceY += tempCanvas.height;
+        pageCount++;
+      }
+
+      return new Blob([pdf.output("blob")], { type: "application/pdf" });
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      throw new Error("Failed to generate PDF. Please try again.");
+    } finally {
+      document.body.removeChild(iframe);
+    }
+  };
   const generateWordBlob = (student: Student, config: DocumentConfig): Blob => {
     const content = generateOfferLetterContent(student, config);
 
@@ -567,43 +633,45 @@ const generatePDFBlob = async (
   };
 
   const createZipWithDocuments = async (
-  students: Student[],
-  config: DocumentConfig
-) => {
-  try {
-    const { JSZip } = await loadLibraries();
-    if (!JSZip) throw new Error("JSZip library not loaded");
-    
-    const zip = new JSZip();
+    students: Student[],
+    config: DocumentConfig
+  ) => {
+    try {
+      const { JSZip } = await loadLibraries();
+      if (!JSZip) throw new Error("JSZip library not loaded");
 
-    for (const student of students) {
-      try {
-        let fileBlob: Blob;
-        let fileName: string;
+      const zip = new JSZip();
 
-        if (docType === "pdf") {
-          fileBlob = await generatePDFBlob(student, config);
-          fileName = `Internship_Offer_Letter_${student.name.replace(
-            /[^a-zA-Z0-9]/g,
-            "_"
-          )}.pdf`;
-        } else {
-          fileBlob = generateWordBlob(student, config);
-          fileName = `Internship_Offer_Letter_${student.name.replace(
-            /[^a-zA-Z0-9]/g,
-            "_"
-          )}.doc`;
+      for (const student of students) {
+        try {
+          let fileBlob: Blob;
+          let fileName: string;
+
+          if (docType === "pdf") {
+            fileBlob = await generatePDFBlob(student, config);
+            fileName = `Internship_Offer_Letter_${student.name.replace(
+              /[^a-zA-Z0-9]/g,
+              "_"
+            )}.pdf`;
+          } else {
+            fileBlob = generateWordBlob(student, config);
+            fileName = `Internship_Offer_Letter_${student.name.replace(
+              /[^a-zA-Z0-9]/g,
+              "_"
+            )}.docx`; // Changed to .docx for compatibility
+          }
+
+          zip.file(fileName, fileBlob);
+        } catch (error) {
+          console.error(
+            `Failed to generate document for ${student.name}:`,
+            error
+          );
+          throw error;
         }
-
-        zip.file(fileName, fileBlob);
-      } catch (error) {
-        console.error(`Failed to generate document for ${student.name}:`, error);
-        // Optionally continue with other students or throw error
-        throw error;
       }
-    }
 
-    const readmeContent = `
+      const readmeContent = `
 INTERNSHIP OFFER LETTERS - ${config.issueDate}
 
 Generated for ${students.length} student(s)
@@ -617,16 +685,16 @@ Configuration:
 - Position: ${config.designation}
 
 Generated on: ${new Date().toLocaleString()}
-    `.trim();
+      `.trim();
 
-    zip.file("README.txt", readmeContent);
+      zip.file("README.txt", readmeContent);
 
-    return await zip.generateAsync({ type: "blob" });
-  } catch (error) {
-    console.error("Failed to create ZIP file:", error);
-    throw new Error("Failed to create ZIP file. Please try again.");
-  }
-};
+      return await zip.generateAsync({ type: "blob" });
+    } catch (error) {
+      console.error("Failed to create ZIP file:", error);
+      throw new Error("Failed to create ZIP file. Please try again.");
+    }
+  };
 
   const generateOfferLetterDocs = async () => {
     setGeneratingDocs(true);
@@ -657,7 +725,7 @@ Generated on: ${new Date().toLocaleString()}
           fileName = `Internship_Offer_Letter_${student.name.replace(
             /[^a-zA-Z0-9]/g,
             "_"
-          )}.doc`;
+          )}.docx`; // Changed to .docx
         }
 
         const url = URL.createObjectURL(fileBlob);
@@ -807,7 +875,9 @@ Generated on: ${new Date().toLocaleString()}
             <Percent className="w-4 h-4 text-gray-400" />
             <select
               value={scoreFilter}
-              onChange={(e) => setScoreFilter(e.target.value as ScoreFilterType)}
+              onChange={(e) =>
+                setScoreFilter(e.target.value as ScoreFilterType)
+              }
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="all">All Scores</option>
