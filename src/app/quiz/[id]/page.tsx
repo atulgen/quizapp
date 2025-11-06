@@ -78,112 +78,116 @@ useEffect(() => {
     const parsedStudent = JSON.parse(studentData);
     setStudent(parsedStudent);
 
-    const fetchQuiz = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
 
-        const response = await fetch(
-          `/api/quiz/${quizId}?studentId=${parsedStudent.id}`
-        );
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Quiz not available");
-        }
-
-        const data = await response.json();
-        console.log(data)
-        if (!data.quiz) {
-          throw new Error("No quiz found");
-        }
-        if (data.quiz.timeLimit <= 0) {
-          throw new Error("Invalid time limit");
-        }
-
-       const cleanedQuestions = data.questions.map((question: { options: any[]; id: any; }) => {
+const fetchQuiz = async () => {
   try {
-    // Join all array elements to reconstruct the original string
-    const joinedString = question.options.join('');
+    setIsLoading(true);
+    setError(null);
+
+    const response = await fetch(
+      `/api/quiz/${quizId}?studentId=${parsedStudent.id}`
+    );
     
-    // Extract all text between quotes using regex
-    const quotedMatches = joinedString.match(/"([^"]*?)"/g);
-    
-    if (quotedMatches && quotedMatches.length > 0) {
-      // Remove quotes from matched strings
-      const cleanedOptions = quotedMatches.map(match => 
-        match.replace(/^"|"$/g, '').trim()
-      ).filter(option => option.length > 0);
-      
-      return {
-        ...question,
-        options: cleanedOptions
-      };
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Quiz not available");
     }
+
+    const data = await response.json();
     
-    // If no quoted matches, try fallback method
-    const fallbackOptions = question.options.map(opt => 
-      String(opt)
-        .replace(/[\[\]"]/g, '') // Remove brackets and quotes
-        .replace(/^\s+|\s+$/g, '') // Trim whitespace
-    ).filter(opt => opt.length > 0 && opt !== ','); // Remove empty and comma-only options
-    
-    // If we have meaningful options, use them
-    if (fallbackOptions.length >= 2) {
-      return {
-        ...question,
-        options: fallbackOptions
-      };
+    if (!data.quiz) {
+      throw new Error("No quiz found");
     }
-    
-    // Last resort: create generic options
-    return {
-      ...question,
-      options: ['Option A', 'Option B', 'Option C', 'Option D']
-    };
-    
-  } catch (error) {
-    console.error('Error processing question', question.id, ':', error);
-    return {
-      ...question,
-      options: ['Option A', 'Option B', 'Option C', 'Option D']
-    };
-  }
-});
+    if (data.quiz.timeLimit <= 0) {
+      throw new Error("Invalid time limit");
+    }
 
-setQuizData({
-  quiz: data.quiz,
-  questions: cleanedQuestions,
-});
-
-        const quizDuration = data.quiz.timeLimit * 60;
-        const savedTime = localStorage.getItem(`quiz_${data.quiz.id}_time`);
-
-        if (savedTime) {
-          const { start, remaining } = JSON.parse(savedTime);
-          const elapsed = Math.floor((Date.now() - start) / 1000);
-          setTimeLeft(Math.max(0, remaining - elapsed));
-        } else {
-          localStorage.setItem(
-            `quiz_${data.quiz.id}_time`,
-            JSON.stringify({
-              start: Date.now(),
-              remaining: quizDuration,
-            })
-          );
-          setTimeLeft(quizDuration);
-        }
-
-        setStartTime(Date.now());
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Quiz load error:", error);
-        setError(
-          error instanceof Error ? error.message : "Failed to load quiz"
-        );
-        setIsLoading(false);
-        setTimeout(() => router.push("/dashboard"), 3000);
+    // ============================================
+    // Validate questions - API should have already parsed options
+    // ============================================
+    const validatedQuestions = data.questions.map((question: any) => {
+      // Ensure options is an array with 4 elements
+      if (!Array.isArray(question.options)) {
+        console.error(`Question ${question.id}: Options is not an array`, question.options);
+        return {
+          ...question,
+          options: ['Option A', 'Option B', 'Option C', 'Option D']
+        };
       }
-    };
+      
+      if (question.options.length !== 4) {
+        console.warn(
+          `Question ${question.id}: Has ${question.options.length} options instead of 4`,
+          question.options
+        );
+        
+        if (question.options.length > 4) {
+          return {
+            ...question,
+            options: question.options.slice(0, 4)
+          };
+        } else {
+          return {
+            ...question,
+            options: ['Option A', 'Option B', 'Option C', 'Option D']
+          };
+        }
+      }
+
+      // Clean each option (remove any extra whitespace)
+      return {
+        ...question,
+        options: question.options.map((opt: string) => String(opt).trim())
+      };
+    });
+
+    // Final validation
+    const invalidQuestions = validatedQuestions.filter(
+      (q: any) => !q.options || q.options.length !== 4
+    );
+    
+    if (invalidQuestions.length > 0) {
+      console.error('Questions with invalid options:', invalidQuestions);
+      throw new Error(
+        `${invalidQuestions.length} questions have invalid options. Please contact admin.`
+      );
+    }
+
+    setQuizData({
+      quiz: data.quiz,
+      questions: validatedQuestions,
+    });
+
+    // Initialize timer
+    const quizDuration = data.quiz.timeLimit * 60;
+    const savedTime = localStorage.getItem(`quiz_${data.quiz.id}_time`);
+
+    if (savedTime) {
+      const { start, remaining } = JSON.parse(savedTime);
+      const elapsed = Math.floor((Date.now() - start) / 1000);
+      setTimeLeft(Math.max(0, remaining - elapsed));
+    } else {
+      localStorage.setItem(
+        `quiz_${data.quiz.id}_time`,
+        JSON.stringify({
+          start: Date.now(),
+          remaining: quizDuration,
+        })
+      );
+      setTimeLeft(quizDuration);
+    }
+
+    setStartTime(Date.now());
+    setIsLoading(false);
+  } catch (error) {
+    console.error("Quiz load error:", error);
+    setError(
+      error instanceof Error ? error.message : "Failed to load quiz"
+    );
+    setIsLoading(false);
+    setTimeout(() => router.push("/dashboard"), 3000);
+  }
+};
 
     if (quizId) fetchQuiz();
 

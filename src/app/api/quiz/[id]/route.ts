@@ -79,13 +79,55 @@ export async function GET(
       return NextResponse.json({ error: 'No questions found for this quiz' }, { status: 404 });
     }
 
-    // Process questions (parse options if they're stored as JSON or comma-separated)
-    const processedQuestions = quizQuestions.map(question => ({
-      ...question,
-      options: typeof question.options === 'string' 
-        ? question.options.split(',').map(opt => opt.trim())
-        : question.options
-    }));
+    // ============================================
+    // FIX: Properly parse JSON string options
+    // ============================================
+    const processedQuestions = quizQuestions.map((question) => {
+      let parsedOptions: string[] = [];
+
+      // If options is a string, it's likely a JSON string - parse it
+      if (typeof question.options === 'string') {
+        try {
+          // Try to parse as JSON first
+          parsedOptions = JSON.parse(question.options);
+        } catch (parseError) {
+          console.error(`Failed to parse options for question ${question.id}:`, parseError);
+          console.error('Raw options:', question.options);
+          // Fallback to generic options
+          parsedOptions = ['Option A', 'Option B', 'Option C', 'Option D'];
+        }
+      } else if (Array.isArray(question.options)) {
+        // Already an array (in case schema is jsonb)
+        parsedOptions = question.options as string[];
+      }
+
+      // Validate it's an array with exactly 4 elements
+      if (!Array.isArray(parsedOptions)) {
+        console.error(`Question ${question.id}: Options is not an array after parsing`);
+        parsedOptions = ['Option A', 'Option B', 'Option C', 'Option D'];
+      } else if (parsedOptions.length !== 4) {
+        console.warn(
+          `Question ${question.id}: Expected 4 options but got ${parsedOptions.length}`,
+          parsedOptions
+        );
+        // If more than 4, take first 4; if less, pad with generic options
+        if (parsedOptions.length > 4) {
+          parsedOptions = parsedOptions.slice(0, 4);
+        } else {
+          while (parsedOptions.length < 4) {
+            parsedOptions.push(`Option ${String.fromCharCode(65 + parsedOptions.length)}`);
+          }
+        }
+      }
+
+      // Return with proper typing - create a new object to avoid type conflicts
+      return {
+        id: question.id,
+        text: question.text,
+        options: parsedOptions as any, // Type assertion to avoid schema conflicts
+        correctAnswer: question.correctAnswer,
+      };
+    });
 
     return NextResponse.json({
       quiz: currentQuiz,
