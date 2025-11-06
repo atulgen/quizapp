@@ -52,142 +52,136 @@ export default function QuizPage() {
   }, [answers, isSubmitting]);
 
   const cleanOption = (option: any) => {
-  let cleaned = String(option);
-  
-  // Remove all unwanted characters and quotes
-  cleaned = cleaned
-    .replace(/^\[|\]$/g, '') // Remove [ ] at start/end
-    .replace(/^["']|["']$/g, '') // Remove quotes at start/end
-    .replace(/\\"/g, '"') // Unescape quotes
-    .trim();
-  
-  return cleaned;
-};
+    let cleaned = String(option);
+    
+    // Remove all unwanted characters and quotes
+    cleaned = cleaned
+      .replace(/^\[|\]$/g, '') // Remove [ ] at start/end
+      .replace(/^["']|["']$/g, '') // Remove quotes at start/end
+      .replace(/\\"/g, '"') // Unescape quotes
+      .trim();
+    
+    return cleaned;
+  };
 
   // Load quiz data and initialize timer
-useEffect(() => {
+  useEffect(() => {
     const studentData = localStorage.getItem("quizStudent");
     if (!studentData) {
       router.push("/register");
       return;
     }
 
-    if(localStorage.getItem("")){
-      
-    }
     const parsedStudent = JSON.parse(studentData);
     setStudent(parsedStudent);
 
+    const fetchQuiz = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-const fetchQuiz = async () => {
-  try {
-    setIsLoading(true);
-    setError(null);
-
-    const response = await fetch(
-      `/api/quiz/${quizId}?studentId=${parsedStudent.id}`
-    );
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Quiz not available");
-    }
-
-    const data = await response.json();
-    
-    if (!data.quiz) {
-      throw new Error("No quiz found");
-    }
-    if (data.quiz.timeLimit <= 0) {
-      throw new Error("Invalid time limit");
-    }
-
-    // ============================================
-    // Validate questions - API should have already parsed options
-    // ============================================
-    const validatedQuestions = data.questions.map((question: any) => {
-      // Ensure options is an array with 4 elements
-      if (!Array.isArray(question.options)) {
-        console.error(`Question ${question.id}: Options is not an array`, question.options);
-        return {
-          ...question,
-          options: ['Option A', 'Option B', 'Option C', 'Option D']
-        };
-      }
-      
-      if (question.options.length !== 4) {
-        console.warn(
-          `Question ${question.id}: Has ${question.options.length} options instead of 4`,
-          question.options
+        const response = await fetch(
+          `/api/quiz/${quizId}?studentId=${parsedStudent.id}`
         );
         
-        if (question.options.length > 4) {
-          return {
-            ...question,
-            options: question.options.slice(0, 4)
-          };
-        } else {
-          return {
-            ...question,
-            options: ['Option A', 'Option B', 'Option C', 'Option D']
-          };
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Quiz not available");
         }
+
+        const data = await response.json();
+        
+        if (!data.quiz) {
+          throw new Error("No quiz found");
+        }
+        if (data.quiz.timeLimit <= 0) {
+          throw new Error("Invalid time limit");
+        }
+
+        // Validate questions - API should have already parsed options
+        const validatedQuestions = data.questions.map((question: any) => {
+          // Ensure options is an array with 4 elements
+          if (!Array.isArray(question.options)) {
+            console.error(`Question ${question.id}: Options is not an array`, question.options);
+            return {
+              ...question,
+              options: ['Option A', 'Option B', 'Option C', 'Option D']
+            };
+          }
+          
+          if (question.options.length !== 4) {
+            console.warn(
+              `Question ${question.id}: Has ${question.options.length} options instead of 4`,
+              question.options
+            );
+            
+            if (question.options.length > 4) {
+              return {
+                ...question,
+                options: question.options.slice(0, 4)
+              };
+            } else {
+              return {
+                ...question,
+                options: ['Option A', 'Option B', 'Option C', 'Option D']
+              };
+            }
+          }
+
+          // Clean each option (remove any extra whitespace)
+          return {
+            ...question,
+            options: question.options.map((opt: string) => String(opt).trim())
+          };
+        });
+
+        // Final validation
+        const invalidQuestions = validatedQuestions.filter(
+          (q: any) => !q.options || q.options.length !== 4
+        );
+        
+        if (invalidQuestions.length > 0) {
+          console.error('Questions with invalid options:', invalidQuestions);
+          throw new Error(
+            `${invalidQuestions.length} questions have invalid options. Please contact admin.`
+          );
+        }
+
+        setQuizData({
+          quiz: data.quiz,
+          questions: validatedQuestions,
+        });
+
+        // Initialize timer
+        const quizDuration = data.quiz.timeLimit * 60;
+        const savedTime = localStorage.getItem(`quiz_${data.quiz.id}_time`);
+
+        if (savedTime) {
+          const { start, remaining } = JSON.parse(savedTime);
+          const elapsed = Math.floor((Date.now() - start) / 1000);
+          setTimeLeft(Math.max(0, remaining - elapsed));
+        } else {
+          localStorage.setItem(
+            `quiz_${data.quiz.id}_time`,
+            JSON.stringify({
+              start: Date.now(),
+              remaining: quizDuration,
+            })
+          );
+          setTimeLeft(quizDuration);
+        }
+
+        setStartTime(Date.now());
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Quiz load error:", error);
+        setError(
+          error instanceof Error ? error.message : "Failed to load quiz"
+        );
+        setIsLoading(false);
+        setTimeout(() => router.push("/dashboard"), 3000);
       }
-
-      // Clean each option (remove any extra whitespace)
-      return {
-        ...question,
-        options: question.options.map((opt: string) => String(opt).trim())
-      };
-    });
-
-    // Final validation
-    const invalidQuestions = validatedQuestions.filter(
-      (q: any) => !q.options || q.options.length !== 4
-    );
-    
-    if (invalidQuestions.length > 0) {
-      console.error('Questions with invalid options:', invalidQuestions);
-      throw new Error(
-        `${invalidQuestions.length} questions have invalid options. Please contact admin.`
-      );
-    }
-
-    setQuizData({
-      quiz: data.quiz,
-      questions: validatedQuestions,
-    });
-
-    // Initialize timer
-    const quizDuration = data.quiz.timeLimit * 60;
-    const savedTime = localStorage.getItem(`quiz_${data.quiz.id}_time`);
-
-    if (savedTime) {
-      const { start, remaining } = JSON.parse(savedTime);
-      const elapsed = Math.floor((Date.now() - start) / 1000);
-      setTimeLeft(Math.max(0, remaining - elapsed));
-    } else {
-      localStorage.setItem(
-        `quiz_${data.quiz.id}_time`,
-        JSON.stringify({
-          start: Date.now(),
-          remaining: quizDuration,
-        })
-      );
-      setTimeLeft(quizDuration);
-    }
-
-    setStartTime(Date.now());
-    setIsLoading(false);
-  } catch (error) {
-    console.error("Quiz load error:", error);
-    setError(
-      error instanceof Error ? error.message : "Failed to load quiz"
-    );
-    setIsLoading(false);
-    setTimeout(() => router.push("/dashboard"), 3000);
-  }
-};
+    };
 
     if (quizId) fetchQuiz();
 
@@ -195,6 +189,7 @@ const fetchQuiz = async () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [router, quizId]);
+
   // Timer countdown
   useEffect(() => {
     if (!quizData || timeLeft <= 0) return;
@@ -421,7 +416,7 @@ const fetchQuiz = async () => {
   const answeredCount = Object.keys(answers).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className="min-h-screen bg-gray-50 pt-16 pb-32"> {/* Added pb-32 for bottom padding */}
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3">
@@ -462,8 +457,8 @@ const fetchQuiz = async () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2">
-        <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6 mb-2">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6"> {/* Increased py-6 for more spacing */}
+        <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6 mb-6"> {/* Increased mb-6 for more spacing */}
           {/* Question */}
           <div className="mb-6">
             <h2 className="text-base sm:text-lg font-medium text-gray-800 mb-4">
@@ -517,91 +512,56 @@ const fetchQuiz = async () => {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Navigation */}
-<div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
-  {/* Previous + Next together */}
-  <div className="flex flex-row items-center gap-3 w-full sm:w-auto">
-    <button
-      onClick={goToPreviousQuestion}
-      disabled={currentQuestionIndex === 0}
-      className="flex items-center space-x-2 px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
-    >
-      <svg
-        className="h-4 w-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M15 19l-7-7 7-7"
-        />
-      </svg>
-      <span>Previous</span>
-    </button>
+      {/* Fixed Bottom Navigation - Fixed positioning with proper spacing */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-20">
+        <div className="max-w-4xl mx-auto flex flex-col gap-4 w-full">
+          
+          {/* Previous + Next Buttons Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={goToPreviousQuestion}
+              disabled={currentQuestionIndex === 0}
+              className="flex items-center justify-center space-x-2 px-4 py-3 text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>Previous</span>
+            </button>
 
-    <button
-      onClick={goToNextQuestion}
-      disabled={currentQuestionIndex === quizData.questions.length - 1}
-      className="flex items-center space-x-2 px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
-    >
-      <span>Next</span>
-      <svg
-        className="h-4 w-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M9 5l7 7-7 7"
-        />
-      </svg>
-    </button>
-  </div>
+            <button
+              onClick={goToNextQuestion}
+              disabled={currentQuestionIndex === quizData.questions.length - 1}
+              className="flex items-center justify-center space-x-2 px-4 py-3 text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              <span>Next</span>
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
 
-  {/* Submit Quiz stays separate */}
-  <button
-    onClick={confirmSubmit}
-    disabled={isSubmitting}
-    className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
-  >
-    {isSubmitting ? (
-      <span className="flex items-center justify-center">
-        <svg
-          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          ></circle>
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-        Submitting...
-      </span>
-    ) : (
-      "Submit Quiz"
-    )}
-  </button>
-</div>
-
-
+          {/* Submit Button - Full Width, Clearly Separated */}
+          <button
+            onClick={confirmSubmit}
+            disabled={isSubmitting}
+            className="w-full px-6 py-3.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 active:from-red-800 active:to-red-900 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors shadow-md text-base"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Submitting...
+              </span>
+            ) : (
+              "Submit Quiz"
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Submit Confirmation Modal */}
