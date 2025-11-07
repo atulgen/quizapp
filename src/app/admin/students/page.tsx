@@ -1125,7 +1125,6 @@ Generated on: ${new Date().toLocaleString()}
     })
   )}
 </div>
-w
 
       {/* Students Table - Mobile */}
       <div className="lg:hidden space-y-4">
