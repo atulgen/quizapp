@@ -11,36 +11,46 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError("");
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
 
-    try {
-      const response = await fetch("/api/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, email, phone }),
-      });
+  // ✅ Validate phone number length before submitting
+  if (phone.length !== 10) {
+    setError("Phone number must be exactly 10 digits.");
+    return;
+  }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Registration failed");
-      }
+  setIsSubmitting(true);
 
-      const { student } = await response.json();
-      storage.setStudent(student);
-      console.log('Student saved to storage:', student);
-      router.push("/");
-    } catch (err) {
-      console.error("Registration error:", err);
-      setError(err instanceof Error ? err.message : "Failed to register. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+  try {
+    const response = await fetch("/api/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name, email, phone }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Registration failed");
     }
-  };
+
+    const { student } = await response.json();
+    storage.setStudent(student);
+    console.log("Student saved to storage:", student);
+    router.push("/");
+  } catch (err) {
+    console.error("Registration error:", err);
+    setError(
+      err instanceof Error ? err.message : "Failed to register. Please try again."
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-2">
