@@ -15,7 +15,20 @@ const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setError("");
 
-  // ✅ Validate phone number length before submitting
+  // ✅ Validate name
+  if (!name.trim()) {
+    setError("Full name is required.");
+    return;
+  }
+
+  // ✅ Validate email using regex
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    setError("Please enter a valid email address.");
+    return;
+  }
+
+  // ✅ Validate 10-digit phone number
   if (phone.length !== 10) {
     setError("Phone number must be exactly 10 digits.");
     return;
@@ -50,6 +63,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     setIsSubmitting(false);
   }
 };
+
 
 
   return (
