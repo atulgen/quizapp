@@ -18,21 +18,23 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-interface Student {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  attempts: Attempt[];
-}
-
 interface Attempt {
   id: number;
   quizId: number;
   quizTitle: string;
   score: number;
   passed: boolean;
-  completedAt: string;
+  completedAt: string; // This already exists - it's the submission timestamp
+  startedAt?: string; // Add this if you want to show start time too
+  timeSpent?: number; // Add this if you want to show duration
+}
+
+interface Student {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  attempts: Attempt[];
 }
 
 interface Quiz {
@@ -128,12 +130,61 @@ export default function StudentsPage() {
     return Math.max(...relevantAttempts.map((attempt) => attempt.score));
   };
 
-  const hasStudentPassed = (student: Student) => {
+  // Get the most recent submission timestamp for a student
+  const getLastSubmissionTime = (student: Student): string | null => {
     const relevantAttempts = selectedQuizId
       ? student.attempts.filter((attempt) => attempt.quizId === selectedQuizId)
       : student.attempts;
 
-    return relevantAttempts.some((attempt) => attempt.passed);
+    if (relevantAttempts.length === 0) return null;
+
+    // Sort by completedAt descending and get the most recent
+    const sortedAttempts = [...relevantAttempts].sort(
+      (a, b) =>
+        new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+    );
+
+    return sortedAttempts[0].completedAt;
+  };
+
+  // Format the submission time for display
+  const formatSubmissionTime = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+    // If within 24 hours, show relative time
+    if (diffInHours < 24) {
+      if (diffInHours < 1) {
+        const minutes = Math.floor(diffInHours * 60);
+        return `${minutes}m ago`;
+      }
+      return `${Math.floor(diffInHours)}h ago`;
+    }
+
+    // Otherwise show date
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  // Get time spent on the test
+  const getTimeSpent = (student: Student): string | null => {
+    const relevantAttempts = selectedQuizId
+      ? student.attempts.filter((attempt) => attempt.quizId === selectedQuizId)
+      : student.attempts;
+
+    if (relevantAttempts.length === 0) return null;
+
+    const bestAttempt = relevantAttempts.reduce((best, current) =>
+      current.score > (best?.score || -1) ? current : best
+    );
+
+    return bestAttempt.timeSpent
+      ? `${Math.ceil(bestAttempt.timeSpent / 60)}m`
+      : "N/A";
   };
 
   const getStudentStatus = (student: Student) => {
@@ -197,53 +248,98 @@ export default function StudentsPage() {
     return filtered;
   }, [students, searchTerm, filterType, scoreFilter, selectedQuizId]);
 
-  const exportToCSV = () => {
-    const selectedQuizTitle = selectedQuizId
-      ? quizzes.find((q) => q.id === selectedQuizId)?.title || "Unknown Quiz"
-      : "All Quizzes";
+const exportToCSV = () => {
+  const selectedQuizTitle = selectedQuizId
+    ? quizzes.find((q) => q.id === selectedQuizId)?.title || "Unknown Quiz"
+    : "All Quizzes";
 
-    const headers = [
-      "S.No",
-      "Name",
-      "Email",
-      "Phone",
-      "Best Score",
-      "Status",
-      "Quiz",
-    ];
-    const csvContent = [
-      headers.join(","),
-      ...filteredStudents.map((student, index) => {
-        const bestScore = getStudentBestScore(student);
-        const status = getStudentStatus(student);
+  // Helper function to get all attempts information
+  const getAttemptsInfo = (student: Student) => {
+    const relevantAttempts = selectedQuizId
+      ? student.attempts.filter((attempt) => attempt.quizId === selectedQuizId)
+      : student.attempts;
 
-        return [
-          index + 1,
-          `"${student.name}"`,
-          `"${student.email}"`,
-          `"${student.phone || "N/A"}"`,
-          bestScore !== null ? `${bestScore}%` : "N/A",
-          status,
-          `"${selectedQuizTitle}"`,
-        ].join(",");
-      }),
-    ].join("\n");
+    if (relevantAttempts.length === 0) {
+      return {
+        lastSubmissionDate: "N/A",
+        lastSubmissionTime: "N/A", 
+        timeSpent: "N/A",
+        totalAttempts: "0",
+        bestScore: "N/A"
+      };
+    }
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `students_${selectedQuizTitle.replace(/[^a-zA-Z0-9]/g, "_")}_${
-        new Date().toISOString().split("T")[0]
-      }.csv`
+    // Sort by completion date to get the most recent
+    const sortedAttempts = [...relevantAttempts].sort(
+      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
     );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    
+    const lastAttempt = sortedAttempts[0];
+    const date = new Date(lastAttempt.completedAt);
+    
+    return {
+      lastSubmissionDate: date.toLocaleDateString('en-GB'),
+      lastSubmissionTime: date.toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false 
+      }),
+      timeSpent: lastAttempt.timeSpent ? `${Math.ceil(lastAttempt.timeSpent / 60)}m` : "N/A",
+      totalAttempts: relevantAttempts.length.toString(),
+      bestScore: getStudentBestScore(student) + '%'
+    };
   };
+
+  const headers = [
+    "S.No",
+    "Name",
+    "Email", 
+    "Phone",
+    "Best Score",
+    "Status",
+    "Total Attempts",
+    "Submission Date",
+    "Submission Time",
+    "Quiz",
+  ];
+  
+  const csvContent = [
+    headers.join(","),
+    ...filteredStudents.map((student, index) => {
+      const status = getStudentStatus(student);
+      const attemptsInfo = getAttemptsInfo(student);
+
+      return [
+        index + 1,
+        `"${student.name}"`,
+        `"${student.email}"`,
+        `"${student.phone || "N/A"}"`,
+        attemptsInfo.bestScore,
+        status,
+        attemptsInfo.totalAttempts,
+        `"${attemptsInfo.lastSubmissionDate}"`,
+        `"${attemptsInfo.lastSubmissionTime}"`,
+        `"${selectedQuizTitle}"`,
+      ].join(",");
+    }),
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute(
+    "download",
+    `students_${selectedQuizTitle.replace(/[^a-zA-Z0-9]/g, "_")}_${
+      new Date().toISOString().split("T")[0]
+    }.csv`
+  );
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
   const toggleEmailSelection = (email: string) => {
     setSelectedEmails((prev) =>
@@ -903,96 +999,133 @@ Generated on: ${new Date().toLocaleString()}
       )}
 
       {/* Students Table - Desktop */}
-      <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
-        <div className="grid grid-cols-12 bg-gray-100 p-4 font-medium text-sm">
+     <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
+  {/* ===== HEADER ===== */}
+  <div className="grid grid-cols-12 bg-gray-100 p-4 font-medium text-sm">
+    <div className="col-span-1">
+      <input
+        type="checkbox"
+        checked={
+          selectedEmails.length === filteredStudents.length &&
+          filteredStudents.length > 0
+        }
+        onChange={
+          selectedEmails.length === filteredStudents.length
+            ? clearEmailSelection
+            : selectAllEmails
+        }
+        className="w-4 h-4"
+      />
+    </div>
+    <div className="col-span-1">S.No</div>
+    <div className="col-span-2">Name</div>
+    <div className="col-span-3">Email</div> {/* Increased space */}
+    <div className="col-span-2">Phone</div>
+    <div className="col-span-1 text-center">Score</div>
+    <div className="col-span-1 text-center">Status</div>
+    <div className="col-span-1 text-center">Submitted</div>
+  </div>
+
+  {/* ===== NO STUDENT FOUND ===== */}
+  {filteredStudents.length === 0 ? (
+    <div className="p-8 text-center text-gray-500">
+      {selectedQuizId
+        ? `No students found for the selected quiz ${
+            searchTerm || filterType !== "all" || scoreFilter !== "all"
+              ? "matching your criteria"
+              : ""
+          }.`
+        : searchTerm || filterType !== "all" || scoreFilter !== "all"
+        ? "No students match your search criteria."
+        : "No students found."}
+    </div>
+  ) : (
+    /* ===== STUDENT ROWS ===== */
+    filteredStudents.map((student, index) => {
+      const bestScore = getStudentBestScore(student);
+      const status = getStudentStatus(student);
+      const isSelected = selectedEmails.includes(student.email);
+      const lastSubmission = getLastSubmissionTime(student);
+
+      return (
+        <div
+          key={student.id}
+          className="grid grid-cols-12 p-4 items-center hover:bg-gray-50 border-b border-gray-200 text-sm"
+        >
+          {/* Checkbox */}
           <div className="col-span-1">
             <input
               type="checkbox"
-              checked={
-                selectedEmails.length === filteredStudents.length &&
-                filteredStudents.length > 0
-              }
-              onChange={
-                selectedEmails.length === filteredStudents.length
-                  ? clearEmailSelection
-                  : selectAllEmails
-              }
+              checked={isSelected}
+              onChange={() => toggleEmailSelection(student.email)}
               className="w-4 h-4"
             />
           </div>
-          <div className="col-span-1">S.No</div>
-          <div className="col-span-3">Name</div>
-          <div className="col-span-3">Email</div>
-          <div className="col-span-2">Phone</div>
-          <div className="col-span-1">Score</div>
-          <div className="col-span-1">Status</div>
-        </div>
 
-        {filteredStudents.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            {selectedQuizId
-              ? `No students found for the selected quiz ${
-                  searchTerm || filterType !== "all" || scoreFilter !== "all"
-                    ? "matching your criteria"
-                    : ""
-                }.`
-              : searchTerm || filterType !== "all" || scoreFilter !== "all"
-              ? "No students match your search criteria."
-              : "No students found."}
+          {/* S.No */}
+          <div className="col-span-1">{index + 1}</div>
+
+          {/* Name */}
+          <div className="col-span-2 font-medium truncate">{student.name}</div>
+
+          {/* Email */}
+          <div className="col-span-3 text-gray-600 truncate">
+            {student.email}
           </div>
-        ) : (
-          filteredStudents.map((student, index) => {
-            console.log("Rendering student:", student);
-            const bestScore = getStudentBestScore(student);
-            const status = getStudentStatus(student);
-            const isSelected = selectedEmails.includes(student.email);
 
-            return (
-              <div
-                key={student.id}
-                className="grid grid-cols-12 p-4 items-center hover:bg-gray-50 border-b border-gray-200 text-sm"
+          {/* Phone */}
+          <div className="col-span-2 text-gray-600 truncate">
+            {student.phone || "N/A"}
+          </div>
+
+          {/* Score */}
+          <div className="col-span-1 text-center">
+            {bestScore !== null ? (
+              <span
+                className={`font-medium ${
+                  bestScore >= 70 ? "text-green-600" : "text-red-600"
+                }`}
               >
-                <div className="col-span-1">
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => toggleEmailSelection(student.email)}
-                    className="w-4 h-4"
-                  />
-                </div>
-                <div className="col-span-1">{index + 1}</div>
-                <div className="col-span-3 font-medium">{student.name}</div>
-                <div className="col-span-3 text-gray-600">{student.email}</div>
-                <div className="col-span-2 text-gray-600">
-                  {student.phone || "N/A"}
-                </div>
-                <div className="col-span-1 text-center">
-                  {bestScore !== null ? (
-                    <span
-                      className={`font-medium ${
-                        bestScore >= 70 ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {bestScore}%
-                    </span>
-                  ) : (
-                    <span className="text-gray-400">N/A</span>
-                  )}
-                </div>
-                <div className="col-span-1 text-center">
-                  {status === "Pass" ? (
-                    <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
-                  ) : status === "Fail" ? (
-                    <XCircle className="w-5 h-5 text-red-600 mx-auto" />
-                  ) : (
-                    <span className="text-gray-400 text-xs">No Attempts</span>
-                  )}
+                {bestScore}%
+              </span>
+            ) : (
+              <span className="text-gray-400">N/A</span>
+            )}
+          </div>
+
+          {/* Status */}
+          <div className="col-span-1 text-center">
+            {status === "Pass" ? (
+              <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
+            ) : status === "Fail" ? (
+              <XCircle className="w-5 h-5 text-red-600 mx-auto" />
+            ) : (
+              <span className="text-gray-400 text-xs">No Attempts</span>
+            )}
+          </div>
+
+          {/* Submitted */}
+          <div className="col-span-1 text-center text-xs text-gray-600">
+            {lastSubmission ? (
+              <div>
+                <div>{formatSubmissionTime(lastSubmission)}</div>
+                <div className="text-gray-400">
+                  {new Date(lastSubmission).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </div>
               </div>
-            );
-          })
-        )}
-      </div>
+            ) : (
+              <span className="text-gray-400">Not submitted</span>
+            )}
+          </div>
+        </div>
+      );
+    })
+  )}
+</div>
+w
 
       {/* Students Table - Mobile */}
       <div className="lg:hidden space-y-4">
@@ -1009,10 +1142,13 @@ Generated on: ${new Date().toLocaleString()}
               : "No students found."}
           </div>
         ) : (
+          // In the mobile view section, add the submission info
           filteredStudents.map((student, index) => {
             const bestScore = getStudentBestScore(student);
             const status = getStudentStatus(student);
             const isSelected = selectedEmails.includes(student.email);
+            const lastSubmission = getLastSubmissionTime(student);
+            const timeSpent = getTimeSpent(student);
 
             return (
               <div key={student.id} className="bg-white rounded-lg shadow p-4">
@@ -1043,6 +1179,24 @@ Generated on: ${new Date().toLocaleString()}
                   <div className="text-sm text-gray-600">
                     {student.phone || "N/A"}
                   </div>
+
+                  {/* NEW: Submission info for mobile */}
+                  {lastSubmission && (
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                      <span className="text-sm text-gray-500">Submitted:</span>
+                      <span className="text-sm text-gray-600">
+                        {formatSubmissionTime(lastSubmission)}
+                      </span>
+                    </div>
+                  )}
+
+                  {timeSpent && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Time Spent:</span>
+                      <span className="text-sm text-gray-600">{timeSpent}</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-center pt-2 border-t border-gray-100">
                     <span className="text-sm text-gray-500">Best Score:</span>
                     {bestScore !== null ? (
@@ -1304,7 +1458,6 @@ Generated on: ${new Date().toLocaleString()}
                       Joining Date: {formatDate(documentConfig.joiningDate)}
                     </div>
                     <div>End Date: {formatDate(documentConfig.endDate)}</div>
-                    <div>Duration: {documentConfig.timePeriod}</div>
                     <div>Stipend: Rs. {documentConfig.stipend}</div>
                     <div>Position: {documentConfig.designation}</div>
                     <div>Format: {docType.toUpperCase()}</div>
