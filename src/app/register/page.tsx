@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { storage } from '@/lib/storage';
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -30,7 +31,8 @@ export default function RegisterPage() {
       }
 
       const { student } = await response.json();
-      localStorage.setItem("quizStudent", JSON.stringify(student));
+      storage.setStudent(student);
+      console.log('Student saved to storage:', student);
       router.push("/");
     } catch (err) {
       console.error("Registration error:", err);

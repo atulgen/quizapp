@@ -4,13 +4,18 @@ import { useRouter } from "next/navigation";
 
 export default function CompletionPage() {
   const router = useRouter();
-  const [timeLeft, setTimeLeft] = useState(5); // ⏱ Only 5 seconds
+  const [timeLeft, setTimeLeft] = useState(5);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const handleNavigation = () => {
-    // 🔹 Clear all quiz-related data from localStorage
-  
-    localStorage.removeItem("quizResult");
-    localStorage.removeItem("quiz_1_time");
+    if (isRedirecting) return; // Prevent multiple calls
+    setIsRedirecting(true);
+    
+    // Clear all quiz-related data from localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("quizResult");
+      localStorage.removeItem("quiz_1_time");
+    }
 
     // Prevent going back to quiz
     window.history.pushState(null, "", "/");
@@ -18,10 +23,18 @@ export default function CompletionPage() {
   };
 
   useEffect(() => {
-    const student = localStorage.getItem("quizStudent");
+    // Check if student exists
+    const student = typeof window !== 'undefined' 
+      ? localStorage.getItem("quizStudent") 
+      : null;
+    
     if (!student) {
-      handleNavigation();
-      return;
+      // Use setTimeout to defer navigation to next tick
+      const timeoutId = setTimeout(() => {
+        handleNavigation();
+      }, 0);
+      
+      return () => clearTimeout(timeoutId);
     }
 
     // Countdown timer (1s interval)
@@ -49,10 +62,10 @@ export default function CompletionPage() {
       clearInterval(timer);
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [router]);
+  }, []); // Empty dependency array - only run once on mount
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="max-w-md w-full bg-white rounded-lg shadow-sm p-8 text-center">
         <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
           <svg
@@ -82,9 +95,10 @@ export default function CompletionPage() {
 
         <button
           onClick={handleNavigation}
-          className="inline-block px-6 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
+          disabled={isRedirecting}
+          className="inline-block px-6 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Return to Home
+          {isRedirecting ? "Redirecting..." : "Return to Home"}
         </button>
       </div>
     </div>

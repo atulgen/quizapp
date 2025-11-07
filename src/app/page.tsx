@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { storage } from '@/lib/storage';
 
 type Quiz = {
   id: number;
@@ -33,16 +34,18 @@ export default function EnhancedQuizDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if student is registered
-    const studentData = localStorage.getItem("quizStudent");
+    // Check if student is registered using storage utility
+    const studentData = storage.getStudent();
+    console.log('Student data from storage:', studentData);
+    
     if (!studentData) {
+      console.log('No student found, redirecting to register');
       router.push("/register");
       return;
     }
 
-    const parsedStudent = JSON.parse(studentData);
-    setStudent(parsedStudent);
-    fetchAvailableQuizzes(parsedStudent.id);
+    setStudent(studentData);
+    fetchAvailableQuizzes(studentData.id);
   }, [router]);
 
   const fetchAvailableQuizzes = async (studentId: number) => {
@@ -173,7 +176,7 @@ export default function EnhancedQuizDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50  md:p-20 pt-20 px-2">
+    <div className="min-h-screen bg-gray-50  md:p-20 py-14 ">
       <div className="w-full mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-4 md:p-3 mb-4 ">
